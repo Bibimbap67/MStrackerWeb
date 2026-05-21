@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NotFlix - Player</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* ==========================================================================
+           Theater Deck Base Configuration Rules
+           ========================================================================== */
+        body { 
+            background-color: #08080a; /* Premium deep obsidian base tint */
+            color: #ffffff;
+            padding-bottom: 80px; 
+        }
+
+        /* Asymmetric Layout Split View Workspace */
+        .theater-deck-workspace {
+            max-width: 1680px;
+            margin: 110px auto 0 auto;
+            padding: 0 4%;
+            display: grid;
+            grid-template-columns: minmax(0, 1.85fr) minmax(0, 1.15fr);
+            gap: 40px;
+            align-items: start;
+        }
+        @media (max-width: 1150px) {
+            .theater-deck-workspace { 
+                grid-template-columns: 1fr; 
+                margin-top: 95px; 
+                gap: 30px;
+            }
+        }
+
+        /* ── LEFT FRAME: Media Columns & Sub-Panels ── */
+        .stage-media-column {
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+            min-width: 0;
+        }
+
+        .cinema-viewport-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            min-width: 0;
+            background-color: #000000;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .embedded-stream-unit { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+        .media-empty-layer {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            background: linear-gradient(135deg, #121216 0%, #050507 100%);
+            color: rgba(255,255,255,0.35);
+            z-index: 1;
+        }
+        .media-empty-layer .placeholder-backdrop {
+            position: absolute;
+            inset: 0;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            opacity: 0.18;
+            filter: blur(6px);
+        }
+        .media-empty-layer .placeholder-inner {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            text-align: center;
+        }
+        .placeholder-play-ring {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
+        }
+        .media-empty-layer p { font-size: 0.85rem; color: rgba(255,255,255,0.3); }
+        .media-empty-layer strong { font-size: 1.1rem; color: rgba(255,255,255,0.6); font-weight: 700; }
+
+        /* iOS-Inspired Capsule Navigation Tabs Rail */
+        .capsule-navigation-rail {
+            display: inline-flex;
+            background-color: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 6px;
+            border-radius: 30px;
+            gap: 6px;
+            width: fit-content;
+        }
+        .capsule-tab-btn {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .capsule-tab-btn:hover { color: #ffffff; background-color: rgba(255,255,255,0.03); }
+        .capsule-tab-btn.active-pill { 
+            color: #000000; 
+            background-color: #ffffff; 
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .deck-panels-viewport { padding: 4px 2px; }
+        .deck-viewpane { display: none; animation: paneReveal 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        .deck-viewpane.active-pane { display: block; }
+        @keyframes paneReveal {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Overview Tab Layout ── */
+        .deck-showcase-title {
+            font-size: 2.4rem;
+            font-weight: 800;
+            letter-spacing: -0.8px;
+            margin-bottom: 14px;
+            background: linear-gradient(to right, #ffffff, #b5b5be);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .deck-metadata-cloud {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .meta-chip {
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e2e2e9;
+        }
+        .meta-chip.high-match {
+            background-color: rgba(46, 204, 113, 0.12);
+            border-color: rgba(46, 204, 113, 0.25);
+            color: #2ecc71;
+        }
+        .deck-synopsis-narrative {
+            color: #a1a1aa;
+            font-size: 1.02rem;
+            line-height: 1.65;
+            max-width: 95%;
+            margin-bottom: 28px;
+        }
+
+        /* Cast Row Lists */
+        .cast-section-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: rgba(255,255,255,0.4);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+        }
+        .cast-scroll-row {
+            display: flex;
+            gap: 14px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            scrollbar-width: none;
+        }
+        .cast-scroll-row::-webkit-scrollbar { display: none; }
+        .cast-card { flex: 0 0 auto; width: 90px; text-align: center; }
+        .cast-avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background-size: cover;
+            background-position: center top;
+            background-color: #1a1a1f;
+            margin: 0 auto 8px;
+            border: 2px solid rgba(255,255,255,0.08);
+        }
+        .cast-name { font-size: 0.72rem; font-weight: 600; color: #fff; line-height: 1.3; }
+        .cast-role { font-size: 0.65rem; color: rgba(255,255,255,0.4); margin-top: 2px; }
+
+        /* Inline clone container for smaller media views */
+        .episodes-tab-inner { display: flex; flex-direction: column; gap: 12px; }
+
+        /* More Like This Item Grid */
+        .premium-recommendations-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+        }
+        .suggested-card {
+            background-color: #141417;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.04);
+            cursor: pointer;
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s ease;
+        }
+        .suggested-card:hover { 
+            transform: translateY(-5px); 
+            border-color: rgba(255,255,255,0.15); 
+            box-shadow: 0 12px 24px rgba(0,0,0,0.5);
+        }
+        .suggested-thumb {
+            width: 100%;
+            aspect-ratio: 16/10;
+            background-size: cover;
+            background-position: center;
+            background-color: #18181c;
+        }
+        .suggested-info { padding: 12px; }
+        .suggested-info h5 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .suggested-info p { font-size: 0.78rem; color: #a1a1aa; }
+
+        /* Meta Details Panel */
+        .premium-extended-details-grid { display: flex; flex-direction: column; gap: 14px; }
+        .extended-row { font-size: 0.95rem; line-height: 1.6; display: flex; gap: 10px; }
+        .extended-row strong {
+            color: #71717a;
+            font-weight: 500;
+            min-width: 120px;
+            flex-shrink: 0;
+        }
+
+        /* ── RIGHT FRAME: Premium Track Stack Containers ── */
+        .sidebar-panel-container {
+            background-color: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 24px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-width: 0;
+        }
+        .sidebar-panel-container.hidden { display: none; }
+
+        .sidebar-control-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            padding-bottom: 18px;
+            gap: 16px;
+        }
+        .sidebar-header-meta h3 { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 2px; }
+        .sidebar-header-meta p { font-size: 0.8rem; color: #71717a; }
+
+        .premium-select-dropdown {
+            background-color: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .premium-select-dropdown:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .track-vertical-scrollway {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 600px;
+            overflow-y: auto;
+            padding-right: 4px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.1) transparent;
+        }
+
+        .track-strip-item {
+            display: flex;
+            align-items: center;
+            background-color: transparent;
+            border: 1px solid transparent;
+            border-radius: 12px;
+            padding: 10px;
+            gap: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .track-strip-item:hover { background-color: rgba(255, 255, 255, 0.04); border-color: rgba(255, 255, 255, 0.05); }
+        .track-strip-item.active-stream-track { background-color: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.12); }
+
+        .track-thumbnail-capsule {
+            position: relative;
+            width: 120px;
+            aspect-ratio: 16 / 10;
+            background-color: #18181b;
+            border-radius: 8px;
+            background-size: cover;
+            background-position: center;
+            flex-shrink: 0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .track-thumbnail-capsule::after {
+            content: '▶';
+            position: absolute;
+            inset: 0;
+            background-color: rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            border-radius: 8px;
+        }
+        .track-strip-item:hover .track-thumbnail-capsule::after { opacity: 1; }
+        .track-strip-item.active-stream-track .track-thumbnail-capsule::after { content: '⏸'; opacity: 1; }
+
+        .track-description-block { flex-grow: 1; min-width: 0; }
+        .track-row-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            gap: 8px;
+        }
+        .track-row-header h4 { font-size: 0.92rem; font-weight: 600; color: #f4f4f5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .track-duration-stamp { font-size: 0.78rem; color: #71717a; font-weight: 500; }
+        .track-summary-excerpt {
+            font-size: 0.82rem;
+            color: #a1a1aa;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* Movie Static Placement Information Shell */
+        .movie-info-panel { display: flex; flex-direction: column; gap: 20px; }
+        .movie-poster-large {
+            width: 100%;
+            aspect-ratio: 2/3;
+            background-size: cover;
+            background-position: center;
+            border-radius: 12px;
+            background-color: #141417;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .movie-quick-facts { display: flex; flex-direction: column; gap: 12px; padding-top: 4px; }
+        .fact-row { display: flex; gap: 10px; font-size: 0.9rem; line-height: 1.4; }
+        .fact-row span:first-child { color: #71717a; min-width: 90px; }
+
+        /* Global Structural Loader Animations */
+        #page-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 70vh;
+            font-size: 1rem;
+            color: rgba(255,255,255,0.3);
+            flex-direction: column;
+            gap: 16px;
+        }
+        .loading-spinner {
+            width: 40px; height: 40px;
+            border: 3px solid rgba(255,255,255,0.06);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: spin 0.75s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <nav class="global-navbar" id="main-nav">
+        <div class="nav-left">
+            <div class="nav-logo-container">
+                <img src="logo.svg" alt="Notflix Popcorn Logo" class="brand-logo-img">
+            </div>
+            <span class="brand-title">NOTFLIX</span>
+        </div>
+        <ul class="nav-links-categories" id="nav-categories">
+            <li class="category-item" data-page="action"><a href="index.html">Action</a></li>
+            <li class="category-item" data-page="comedy"><a href="index.html">Comedy</a></li>
+            <li class="category-item" data-page="drama"><a href="index.html">Drama</a></li>
+            <li class="category-item" data-page="scifi"><a href="index.html">Sci-Fi</a></li>
+            <li class="category-item" data-page="horror"><a href="index.html">Horror</a></li>
+            <li class="category-item" data-page="mystery"><a href="index.html">Mystery</a></li>
+        </ul>
+        <div class="nav-right">
+            <a href="#" class="social-icon-link" aria-label="Join Discord Server">
+                <svg class="discord-icon" viewBox="0 0 127.14 96.36" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,53.22,6.83,77.19,77.19,0,0,0,49.88,0,105.15,105.15,0,0,0,19.44,8.07C3.66,31.58-1.86,54.65,1,77.53A105.73,105.73,0,0,0,32,96.36a74.37,74.37,0,0,0,6.73-11A68.52,68.52,0,0,1,28,80.17c1-.76,2-1.56,3-2.38a74.83,74.83,0,0,0,65.06,0c1,.82,2,1.62,3,2.38a68.15,68.15,0,0,1-10.74,5.18,74.61,74.61,0,0,0,6.73,11,105.54,105.54,0,0,0,31.6-18.83C129.62,49.7,123.77,26.9,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53S36.18,40.36,42.45,40.36,53.83,46,53.83,53,48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.24,60,73.24,53S78.41,40.36,84.69,40.36,96.07,46,96.07,53,91,65.69,84.69,65.69Z" fill="#fff"/>
+                </svg>
+            </a>
+            <button class="nav-btn-signin" type="button">
+                <svg class="signin-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                Sign In
+            </button>
+        </div>
+    </nav>
+
+    <div id="page-loading">
+        <div class="loading-spinner"></div>
+        <p>Loading catalog records...</p>
+    </div>
+
+    <main class="theater-deck-workspace" id="player-layout" style="display:none;">
+
+        <section class="stage-media-column">
+            <div class="cinema-viewport-container">
+                <div class="media-empty-layer" id="player-fallback-card">
+                    <div class="placeholder-backdrop" id="placeholder-backdrop"></div>
+                    <div class="placeholder-inner">
+                        <div class="placeholder-play-ring">▶</div>
+                        <strong id="placeholder-title">Loading Track...</strong>
+                        <p>Video source track data is currently detached</p>
+                    </div>
+                </div>
+                <video id="theater-embedded-media" class="embedded-stream-unit" controls preload="metadata">
+                    <source src="" type="video/mp4">
+                </video>
+            </div>
+
+            <div class="capsule-navigation-rail" role="tablist">
+                <button class="capsule-tab-btn active-pill" data-target="panel-overview" role="tab" aria-selected="true">Overview</button>
+                <button class="capsule-tab-btn" data-target="panel-episodes" role="tab" aria-selected="false" id="tab-episodes">Episodes</button>
+                <button class="capsule-tab-btn" data-target="panel-suggested" role="tab" aria-selected="false">More Like This</button>
+                <button class="capsule-tab-btn" data-target="panel-details" role="tab" aria-selected="false">Details</button>
+            </div>
+
+            <div class="deck-panels-viewport">
+
+                <div class="deck-viewpane active-pane" id="panel-overview">
+                    <h1 class="deck-showcase-title" id="ov-title"></h1>
+                    <div class="deck-metadata-cloud" id="ov-badges"></div>
+                    <p class="deck-synopsis-narrative" id="ov-overview"></p>
+                    <p class="cast-section-title">Cast Members</p>
+                    <div class="cast-scroll-row" id="ov-cast"></div>
+                </div>
+
+                <div class="deck-viewpane" id="panel-episodes">
+                    <div class="episodes-tab-inner" id="episodes-tab-list"></div>
+                </div>
+
+                <div class="deck-viewpane" id="panel-suggested">
+                    <div class="premium-recommendations-grid" id="suggested-grid"></div>
+                </div>
+
+                <div class="deck-viewpane" id="panel-details">
+                    <div class="premium-extended-details-grid" id="details-list"></div>
+                </div>
+
+            </div>
+        </section>
+
+        <section class="sidebar-panel-container" id="right-panel">
+
+            <div id="tv-right-panel">
+                <div class="sidebar-control-group">
+                    <div class="sidebar-header-meta">
+                        <h3>Episodes</h3>
+                        <p id="audio-track-label">English [Original]</p>
+                    </div>
+                    <select class="premium-select-dropdown" id="season-selector" aria-label="Select Season Track Layout"></select>
+                </div>
+                <div class="track-vertical-scrollway" id="episode-list"></div>
+            </div>
+
+            <div id="movie-right-panel" style="display:none;">
+                <div class="movie-info-panel">
+                    <div class="movie-poster-large" id="movie-poster"></div>
+                    <div class="movie-quick-facts" id="movie-facts"></div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <script>
+    // ============================================================
+    // CONFIG DATA STRUCT
+    // ============================================================
+    const TMDB_KEY   = "0a0e2bf9fe54e6e65320d51734e258a4";
+    const BASE       = "https://api.themoviedb.org/3";
+    const IMG_ORIG   = "https://image.tmdb.org/t/p/original";
+    const IMG_W300   = "https://image.tmdb.org/t/p/w300";
+    const IMG_W185   = "https://image.tmdb.org/t/p/w185";
+    const IMG_POSTER = "https://image.tmdb.org/t/p/w342";
+
+    // ============================================================
+    // APPLICATION BOOT ENGINE
+    // ============================================================
+    const params   = new URLSearchParams(location.search);
+    const MEDIA_ID = params.get("id");
+    const MEDIA_TYPE = params.get("type") || "movie";
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        setupTabs();
+        setupScrollNav();
+
+        if (!MEDIA_ID) {
+            document.getElementById("page-loading").innerHTML = `<p style="color:rgba(255,255,255,0.4)">No active content identifier found. <a href="index.html" style="color:#e50914">Go back</a></p>`;
+            return;
+        }
+
+        try {
+            await loadPlayerPage(MEDIA_ID, MEDIA_TYPE);
+        } catch (err) {
+            console.error("Critical core module exception:", err);
+            document.getElementById("page-loading").innerHTML = `<p style="color:rgba(255,255,255,0.4)">Failed to parse streaming catalog entry. <a href="index.html" style="color:#e50914">Go back</a></p>`;
+        }
+    });
+
+    // ============================================================
+    // CORE CATALOG API ROUTER
+    // ============================================================
+    async function loadPlayerPage(id, type) {
+        const [detailsRes, creditsRes, similarRes] = await Promise.all([
+            fetch(`${BASE}/${type}/${id}?api_key=${TMDB_KEY}&append_to_response=content_ratings,release_dates`),
+            fetch(`${BASE}/${type}/${id}/credits?api_key=${TMDB_KEY}`),
+            fetch(`${BASE}/${type}/${id}/similar?api_key=${TMDB_KEY}`),
+        ]);
+
+        const details = await detailsRes.json();
+        const credits = await creditsRes.json();
+        const similar = await similarRes.json();
+
+        const title    = details.title || details.name || details.original_name;
+        const year     = (details.release_date || details.first_air_date || "").split("-")[0];
+        const backdrop = details.backdrop_path ? `${IMG_ORIG}${details.backdrop_path}` : "";
+        const poster   = details.poster_path   ? `${IMG_POSTER}${details.poster_path}` : "";
+        const score    = Math.round((details.vote_average || 0) * 10);
+        const overview = details.overview || "No extended profile description is cataloged for this entry.";
+
+        let ratingLabel = getRating(details, type);
+
+        document.title = `NotFlix — ${title}`;
+        document.getElementById("placeholder-title").textContent = title;
+        if (backdrop) document.getElementById("placeholder-backdrop").style.backgroundImage = `url('${backdrop}')`;
+        if (backdrop) document.getElementById("theater-embedded-media").poster = backdrop;
+
+        document.getElementById("ov-title").textContent = title;
+        buildBadges(details, type, year, score, ratingLabel);
+        document.getElementById("ov-overview").textContent = overview;
+        buildCast(credits.cast || []);
+
+        buildDetails(details, credits, type);
+        buildSimilar(similar.results || [], type);
+
+        if (type === "tv") {
+            document.getElementById("tab-episodes").style.display = "";
+            buildSeasonSelector(details);
+            if (details.seasons && details.seasons.length > 0) {
+                const firstReal = details.seasons.find(s => s.season_number > 0) || details.seasons[0];
+                await loadSeason(id, firstReal.season_number);
+            }
+            document.getElementById("season-selector").addEventListener("change", async (e) => {
+                await loadSeason(id, e.target.value);
+            });
+        } else {
+            document.getElementById("tab-episodes").style.display = "none";
+            document.getElementById("tv-right-panel").style.display = "none";
+            document.getElementById("movie-right-panel").style.display = "block";
+            buildMoviePanel(details, poster);
+        }
+
+        document.getElementById("page-loading").style.display = "none";
+        document.getElementById("player-layout").style.display = "grid";
+    }
+
+    // ── Metric Chip Rendering loops ──
+    function buildBadges(details, type, year, score, ratingLabel) {
+        const el = document.getElementById("ov-badges");
+        const seasons = type === "tv" && details.number_of_seasons
+            ? `<span class="meta-chip">${details.number_of_seasons} Season${details.number_of_seasons > 1 ? "s" : ""}</span>` : "";
+        const runtime = type === "movie" && details.runtime
+            ? `<span class="meta-chip">${details.runtime} min</span>` : "";
+        const genres = (details.genres || []).slice(0, 2).map(g =>
+            `<span class="meta-chip">${g.name}</span>`).join("");
+
+        el.innerHTML = `
+            <span class="meta-chip high-match">${score > 0 ? score : "—"}% Match</span>
+            <span class="meta-chip">${year}</span>
+            ${ratingLabel ? `<span class="meta-chip">${ratingLabel}</span>` : ""}
+            ${seasons}${runtime}
+            <span class="meta-chip">★ ${(details.vote_average||0).toFixed(1)}</span>
+            ${genres}
+        `;
+    }
+
+    // ── Cast Renders ──
+    function buildCast(cast) {
+        const el = document.getElementById("ov-cast");
+        if (!cast.length) { el.innerHTML = `<p style="color:rgba(255,255,255,0.3);font-size:0.85rem">No cast metrics available.</p>`; return; }
+        el.innerHTML = cast.slice(0, 12).map(actor => {
+            const img = actor.profile_path ? `${IMG_W185}${actor.profile_path}` : "";
+            const avatar = img ? `background-image:url('${img}')` : `background-color:#2a2a35`;
+            return `
+                <div class="cast-card">
+                    <div class="cast-avatar" style="${avatar}"></div>
+                    <div class="cast-name">${actor.name}</div>
+                    <div class="cast-role">${actor.character || ""}</div>
+                </div>`;
+        }).join("");
+    }
+
+    // ── Deep Specifications Metadata Tab ──
+    function buildDetails(details, credits, type) {
+        const el = document.getElementById("details-list");
+        const cast  = (credits.cast  || []).slice(0, 6).map(c => c.name).join(", ") || "N/A";
+        const crew  = (credits.crew  || []);
+        const directors = crew.filter(c => c.job === "Director").map(c => c.name).join(", ") || "N/A";
+        const creators  = (details.created_by || []).map(c => c.name).join(", ") || directors;
+        const genres    = (details.genres || []).map(g => g.name).join(", ") || "N/A";
+        const studios   = (details.production_companies || []).map(c => c.name).slice(0,3).join(", ") || "N/A";
+        const langs     = (details.spoken_languages || []).map(l => l.english_name).join(", ") || "N/A";
+        const status    = details.status || "N/A";
+        const network   = type === "tv" ? (details.networks || []).map(n => n.name).join(", ") || "N/A" : null;
+
+        const rows = [
+            ["Creator / Director", creators],
+            ["Cast Personnel", cast],
+            ["Genres Context", genres],
+            ["Production Status", status],
+            network ? ["Network Source", network] : null,
+            ["Studio Labels", studios],
+            ["Track Languages", langs],
+        ].filter(Boolean);
+
+        el.innerHTML = rows.map(([k, v]) =>
+            `<div class="extended-row"><strong>${k}</strong><span>${v}</span></div>`
+        ).join("");
+    }
+
+    // ── Related Recommendations Matrix Grid ──
+    function buildSimilar(results, type) {
+        const el = document.getElementById("suggested-grid");
+        const filtered = results.filter(r => r.poster_path || r.backdrop_path).slice(0, 12);
+        if (!filtered.length) { el.innerHTML = `<p style="color:rgba(255,255,255,0.3);font-size:0.85rem;grid-column:1/-1">No alternative matching profiles discovered.</p>`; return; }
+
+        el.innerHTML = filtered.map(item => {
+            const thumb = item.backdrop_path ? `${IMG_W300}${item.backdrop_path}` : `${IMG_POSTER}${item.poster_path}`;
+            const label = item.title || item.name;
+            const yr    = (item.release_date || item.first_air_date || "").split("-")[0];
+            const sc    = Math.round((item.vote_average || 0) * 10);
+            return `<div class="suggested-card" onclick="goToPlayer(${item.id}, '${type}')">
+                        <div class="suggested-thumb" style="background-image:url('${thumb}')"></div>
+                        <div class="suggested-info">
+                            <h5>${label}</h5>
+                            <p>${sc > 0 ? sc+"% Match" : "—"} · ${yr}</p>
+                        </div>
+                    </div>`;
+        }).join("");
+    }
+
+    // ── Dropdown options builder ──
+    function buildSeasonSelector(details) {
+        const sel = document.getElementById("season-selector");
+        const seasons = (details.seasons || []).filter(s => s.season_number > 0);
+        sel.innerHTML = seasons.map(s =>
+            `<option value="${s.season_number}">Season ${s.season_number}</option>`
+        ).join("");
+    }
+
+    // ── Async TV Stream Parsing Row Units ──
+    async function loadSeason(seriesId, seasonNum) {
+        const listEl    = document.getElementById("episode-list");
+        const tabListEl = document.getElementById("episodes-tab-list");
+        listEl.innerHTML    = `<div style="color:rgba(255,255,255,0.3);font-size:0.85rem;padding:12px">Buffering sequence nodes...</div>`;
+        tabListEl.innerHTML = listEl.innerHTML;
+
+        try {
+            const res  = await fetch(`${BASE}/tv/${seriesId}/season/${seasonNum}?api_key=${TMDB_KEY}`);
+            const data = await res.json();
+            const eps  = data.episodes || [];
+
+            const makeCard = (ep, active) => {
+                const thumb = ep.still_path ? `${IMG_W300}${ep.still_path}` : "";
+                const runtime = ep.runtime ? `${ep.runtime}m` : "";
+                const name    = ep.name || `Episode ${ep.episode_number}`;
+                const overview = ep.overview || "No item log synopsis available.";
+                return `
+                    <div class="track-strip-item ${active ? "active-stream-track" : ""}" data-ep="${ep.episode_number}">
+                        <div class="track-thumbnail-capsule" style="${thumb ? `background-image:url('${thumb}')` : ""}"></div>
+                        <div class="track-description-block">
+                            <div class="track-row-header">
+                                <h4>${ep.episode_number}. ${name}</h4>
+                                <span class="track-duration-stamp">${runtime}</span>
+                            </div>
+                            <p class="track-summary-excerpt">${overview}</p>
+                        </div>
+                    </div>`;
+            };
+
+            const html = eps.map((ep, i) => makeCard(ep, i === 0)).join("");
+            listEl.innerHTML    = html || `<p style="color:rgba(255,255,255,0.3);font-size:0.85rem">No runtime records found.</p>`;
+            tabListEl.innerHTML = html || listEl.innerHTML;
+
+            [listEl, tabListEl].forEach(container => {
+                container.querySelectorAll(".track-strip-item").forEach(card => {
+                    card.addEventListener("click", () => {
+                        document.querySelectorAll(".track-strip-item").forEach(c => c.classList.remove("active-stream-track"));
+                        const ep = card.dataset.ep;
+                        document.querySelectorAll(`.track-strip-item[data-ep="${ep}"]`)
+                            .forEach(c => c.classList.add("active-stream-track"));
+                    });
+                });
+            });
+
+        } catch (err) {
+            listEl.innerHTML = `<p style="color:rgba(255,255,255,0.3);font-size:0.85rem">Failed to populate episode tracking.</p>`;
+        }
+    }
+
+    // ── Static Sidebar Movie Layout Generator ──
+    function buildMoviePanel(details, poster) {
+        if (poster) document.getElementById("movie-poster").style.backgroundImage = `url('${poster}')`;
+
+        const facts = [
+            ["Release",  details.release_date || "—"],
+            ["Runtime",  details.runtime ? `${details.runtime} min` : "—"],
+            ["Rating",   `★ ${(details.vote_average||0).toFixed(1)} / 10`],
+            ["Votes",    details.vote_count ? details.vote_count.toLocaleString() : "—"],
+            ["Language", details.original_language?.toUpperCase() || "—"],
+            ["Budget",   details.budget ? `$${(details.budget/1e6).toFixed(0)}M` : "—"],
+            ["Revenue",  details.revenue ? `$${(details.revenue/1e6).toFixed(0)}M` : "—"],
+            ["Status",   details.status || "—"],
+        ];
+
+        document.getElementById("movie-facts").innerHTML = facts.map(([k, v]) =>
+            `<div class="fact-row"><span>${k}</span><span>${v}</span></div>`
+        ).join("");
+    }
+
+    // ============================================================
+    // AUXILIARY CORE UTILITIES
+    // ============================================================
+    function getRating(details, type) {
+        try {
+            if (type === "movie") {
+                const us = (details.release_dates?.results || []).find(r => r.iso_3166_1 === "US");
+                return us?.release_dates?.[0]?.certification || "";
+            } else {
+                const us = (details.content_ratings?.results || []).find(r => r.iso_3166_1 === "US");
+                return us?.rating || "";
+            }
+        } catch { return ""; }
+    }
+
+    function goToPlayer(id, type) {
+        location.href = `videoplayer.html?id=${id}&type=${type}`;
+    }
+
+    // ── Pill Control Switching Action Triggers ──
+    function setupTabs() {
+        document.addEventListener("click", (e) => {
+            const btn = e.target.closest(".capsule-tab-btn");
+            if (!btn) return;
+            const targetId = btn.getAttribute("data-target");
+            document.querySelectorAll(".capsule-tab-btn").forEach(b => {
+                b.classList.remove("active-pill");
+                b.setAttribute("aria-selected", "false");
+            });
+            document.querySelectorAll(".deck-viewpane").forEach(p => p.classList.remove("active-pane"));
+            btn.classList.add("active-pill");
+            btn.setAttribute("aria-selected", "true");
+            document.getElementById(targetId)?.classList.add("active-pane");
+        });
+    }
+
+    // ── Sticky Header Toggles ──
+    function setupScrollNav() {
+        window.addEventListener("scroll", () => {
+            document.getElementById("main-nav")?.classList.toggle("scrolled", window.scrollY > 10);
+        });
+    }
+    </script>
+</body>
+</html>
