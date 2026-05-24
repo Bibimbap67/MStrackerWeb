@@ -835,3 +835,56 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
+ // ── Profile Dropdown Logic ──
+    (function () {
+        const signinBtn     = document.getElementById('nav-signin-btn');
+        const profileWrapper = document.getElementById('nav-profile-wrapper');
+        const profileBtn    = document.getElementById('nav-profile-btn');
+        const dropdown      = document.getElementById('profile-dropdown');
+        const pdUsername    = document.getElementById('pd-username');
+        const signoutBtn    = document.getElementById('pd-signout-btn');
+
+        function initProfile() {
+            const user = localStorage.getItem('notflix_user');
+            if (user) {
+                // Logged in: hide sign-in, show avatar
+                signinBtn.style.display = 'none';
+                profileWrapper.style.display = 'flex';
+                pdUsername.textContent = user;
+            } else {
+                signinBtn.style.display = 'flex';
+                profileWrapper.style.display = 'none';
+            }
+        }
+
+        // Toggle dropdown open/close
+        profileBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = dropdown.classList.toggle('open');
+            profileBtn.setAttribute('aria-expanded', isOpen);
+        });
+
+        // Close when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!dropdown.contains(e.target) && e.target !== profileBtn) {
+                dropdown.classList.remove('open');
+                profileBtn.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        // Sign out
+        signoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('notflix_user');
+            dropdown.classList.remove('open');
+            initProfile();
+        });
+
+        // Hover highlight on menu items
+        document.querySelectorAll('.pd-menu-item').forEach(item => {
+            item.addEventListener('mouseenter', () => item.classList.add('hovered'));
+            item.addEventListener('mouseleave', () => item.classList.remove('hovered'));
+        });
+
+        initProfile();
+    })();
+
