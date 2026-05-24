@@ -5,6 +5,12 @@ const TMDB_API_KEY = "0a0e2bf9fe54e6e65320d51734e258a4";
 const BASE_URL    = "https://api.themoviedb.org/3";
 const IMAGE_URL   = "https://image.tmdb.org/t/p/original";
 const POSTER_URL  = "https://image.tmdb.org/t/p/w342";
+const TMDB_KEY    = TMDB_API_KEY;
+const BASE        = BASE_URL;
+const IMG_ORIG    = IMAGE_URL;
+const IMG_W300    = "https://image.tmdb.org/t/p/w300";
+const IMG_W185    = "https://image.tmdb.org/t/p/w185";
+const IMG_POSTER  = POSTER_URL;
 
 // Genre IDs
 const GENRES = {
@@ -40,26 +46,42 @@ let currentModalType = null;     // "movie" or "tv"
 // ==========================================================================
 // BOOT
 // ==========================================================================
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     if (!TMDB_API_KEY || TMDB_API_KEY === "YOUR_TMDB_API_KEY_HERE") {
         alert("Please insert your TMDb API Key inside script.js!");
         return;
     }
 
-    setupNavSPA();
-    showPage("action"); // default landing page = Action (home)
+    const homePage = document.getElementById("page-home");
+    const playerPage = document.getElementById("player-layout");
 
-    document.getElementById("modal-close").addEventListener("click", closeModal);
-    document.getElementById("detail-modal").addEventListener("click", (e) => {
-        if (e.target.id === "detail-modal") closeModal();
-    });
+    if (homePage) {
+        setupNavSPA();
+        showPage("action"); // default landing page = Action (home)
 
-    // Stream button → navigate to videoplayer with current modal's id & type
-    document.querySelector(".btn-stream").addEventListener("click", () => {
-        if (currentModalId && currentModalType) {
-            window.location.href = `videoplayer.html?id=${currentModalId}&type=${currentModalType}`;
+        const modalClose = document.getElementById("modal-close");
+        if (modalClose) modalClose.addEventListener("click", closeModal);
+
+        const detailModal = document.getElementById("detail-modal");
+        if (detailModal) {
+            detailModal.addEventListener("click", (e) => {
+                if (e.target.id === "detail-modal") closeModal();
+            });
         }
-    });
+
+        const btnStream = document.querySelector(".btn-stream");
+        if (btnStream) {
+            btnStream.addEventListener("click", () => {
+                if (currentModalId && currentModalType) {
+                    window.location.href = `videoplayer.html?id=${currentModalId}&type=${currentModalType}`;
+                }
+            });
+        }
+    }
+
+    if (playerPage) {
+        await initPlayerPage();
+    }
 
     window.addEventListener("scroll", onScroll);
 });
@@ -453,9 +475,363 @@ function closeModal() {
     document.body.style.overflow = "auto";
 }
 
+// -- FIRST_PLAYER_LOGIC_START --
 // ==========================================================================
 // SCROLL — navbar blur
 // ==========================================================================
 function onScroll() {
     document.getElementById("main-nav").classList.toggle("scrolled", window.scrollY > 10);
 }
+
+// ==========================================================================
+// VIDEOPLAYER PAGE LOGIC
+// ==========================================================================
+async function initPlayerPage() {
+    const playerLayout = document.getElementById('player-layout');
+    if (!playerLayout) return;
+
+    if (!TMDB_API_KEY || TMDB_API_KEY === "YOUR_TMDB_API_KEY_HERE") {
+        alert("Please insert your TMDb API Key inside script.js!");
+        return;
+    }
+
+    setupTabs();
+    setupScrollNav();
+
+    const params = new URLSearchParams(location.search);
+    const MEDIA_ID = params.get("id");
+    const MEDIA_TYPE = params.get("type") || "movie";
+
+    if (!MEDIA_ID) {
+        document.getElementById("page-loading").innerHTML = `<p style="color:rgba(255,255,255,0.4)">No active content identifier found. <a href="index.html" style="color:#e50914">Go back</a></p>`;
+        return;
+    }
+
+    try {
+        await loadPlayerPage(MEDIA_ID, MEDIA_TYPE);
+    } catch (err) {
+        console.error("Critical core module exception:", err);
+        document.getElementById("page-loading").innerHTML = `<p style="color:rgba(255,255,255,0.4)">Failed to parse streaming catalog entry. <a href="index.html" style="color:#e50914">Go back</a></p>`;
+    }
+}
+
+async function loadPlayerPage(id, type) {
+    const loadingEl = document.getElementById("page-loading");
+    const playerLayoutEl = document.getElementById("player-layout");
+    const fallbackTitle = document.getElementById("placeholder-title");
+    const fallbackBackdrop = document.getElementById("placeholder-backdrop");
+
+    if (!loadingEl || !playerLayoutEl || !fallbackTitle || !fallbackBackdrop) {
+        throw new Error("Required player page elements are missing.");
+    }
+
+    loadingEl.style.display = "none";
+    playerLayoutEl.style.display = "grid";
+    fallbackTitle.textContent = "Loading media...";
+    fallbackBackdrop.style.backgroundImage = "";
+
+    const [detailsRes, creditsRes, similarRes] = await Promise.all([
+        fetch(`${BASE_URL}/${type}/${id}?api_key=${TMDB_API_KEY}`),
+        fetch(`${BASE_URL}/${type}/${id}/credits?api_key=${TMDB_API_KEY}`),
+        fetch(`${BASE_URL}/${type}/${id}/similar?api_key=${TMDB_API_KEY}`),
+    ]);
+
+    if (!detailsRes.ok || !creditsRes.ok || !similarRes.ok) {
+        throw new Error("One or more player data requests failed.");
+    }
+
+    const details = await detailsRes.json();
+    const credits = await creditsRes.json();
+    const similar = await similarRes.json();
+
+    const title = details.title || details.name || details.original_name || "Untitled";
+    const year = (details.release_date || details.first_air_date || "").split("-")[0] || "—";
+    const score = Math.round((details.vote_average || 0) * 10);
+    const rating = getRating(details, type);
+
+    document.getElementById("ov-title").innerText = title;
+    document.getElementById("ov-overview").innerText = details.overview || "No overview available.";
+    fallbackTitle.textContent = title;
+
+    if (details.backdrop_path) {
+        fallbackBackdrop.style.backgroundImage = `url('${IMAGE_URL}${details.backdrop_path}')`;
+    }
+
+    buildBadges(details, type, year, score, rating);
+    buildCast(credits.cast || []);
+    buildDetails(details, credits, type);
+    buildSimilar((similar.results || []).filter(item => item.id !== parseInt(id, 10)), type);
+
+    if (type === "tv") {
+        document.getElementById("tv-right-panel").style.display = "block";
+        document.getElementById("movie-right-panel").style.display = "none";
+        buildSeasonSelector(details);
+        const firstSeason = (details.seasons || []).find(s => s.season_number > 0)?.season_number;
+        if (firstSeason) await loadSeason(id, firstSeason);
+    } else {
+        document.getElementById("tv-right-panel").style.display = "none";
+        document.getElementById("movie-right-panel").style.display = "block";
+        buildMoviePanel(details, details.poster_path ? `${IMG_POSTER}${details.poster_path}` : "");
+    }
+}
+
+function buildBadges(details, type, year, score, ratingLabel) {
+    const el = document.getElementById("ov-badges");
+    const seasons = type === "tv" && details.number_of_seasons
+        ? `<span class="meta-chip">${details.number_of_seasons} Season${details.number_of_seasons > 1 ? "s" : ""}</span>` : "";
+    const runtime = type === "movie" && details.runtime
+        ? `<span class="meta-chip">${details.runtime} min</span>` : "";
+    const genres = (details.genres || []).slice(0, 2).map(g =>
+        `<span class="meta-chip">${g.name}</span>`).join("");
+
+    el.innerHTML = `
+        <span class="meta-chip high-match">${score > 0 ? score : "—"}% Match</span>
+        <span class="meta-chip">${year}</span>
+        ${ratingLabel ? `<span class="meta-chip">${ratingLabel}</span>` : ""}
+        ${seasons}${runtime}
+        <span class="meta-chip">★ ${(details.vote_average||0).toFixed(1)}</span>
+        ${genres}
+    `;
+}
+
+function buildCast(cast) {
+    const el = document.getElementById("ov-cast");
+    if (!el) return;
+    if (!cast.length) { el.innerHTML = `<p style="color:rgba(255,255,255,0.3);font-size:0.85rem">No cast metrics available.</p>`; return; }
+    el.innerHTML = cast.slice(0, 12).map(actor => {
+        const img = actor.profile_path ? `${IMG_W185}${actor.profile_path}` : "";
+        const avatar = img ? `background-image:url('${img}')` : `background-color:#2a2a35`;
+        return `
+            <div class="cast-card">
+                <div class="cast-avatar" style="${avatar}"></div>
+                <div class="cast-text-overlay">
+                    <div class="cast-name">${actor.name}</div>
+                    <div class="cast-role">${actor.character || ""}</div>
+                </div>
+            </div>`;
+    }).join("");
+    enableDragScroll(el);
+}
+
+function buildDetails(details, credits, type) {
+    const el = document.getElementById("details-list");
+    const cast  = (credits.cast  || []).slice(0, 6).map(c => c.name).join(", ") || "N/A";
+    const crew  = (credits.crew  || []);
+    const directors = crew.filter(c => c.job === "Director").map(c => c.name).join(", ") || "N/A";
+    const creators  = (details.created_by || []).map(c => c.name).join(", ") || directors;
+    const genres    = (details.genres || []).map(g => g.name).join(", ") || "N/A";
+    const studios   = (details.production_companies || []).map(c => c.name).slice(0,3).join(", ") || "N/A";
+    const langs     = (details.spoken_languages || []).map(l => l.english_name).join(", ") || "N/A";
+    const status    = details.status || "N/A";
+    const network   = type === "tv" ? (details.networks || []).map(n => n.name).join(", ") || "N/A" : null;
+
+    const rows = [
+        ["Creator / Director", creators],
+        ["Cast Personnel", cast],
+        ["Genres Context", genres],
+        ["Production Status", status],
+        network ? ["Network Source", network] : null,
+        ["Studio Labels", studios],
+        ["Track Languages", langs],
+    ].filter(Boolean);
+
+    el.innerHTML = rows.map(([k, v]) =>
+        `<div class="extended-row"><strong>${k}</strong><span>${v}</span></div>`
+    ).join("");
+}
+
+function buildSimilar(results, type) {
+    const el = document.getElementById("suggested-grid");
+    if (!el) return;
+    const filtered = results.filter(r => r.poster_path || r.backdrop_path).slice(0, 12);
+    if (!filtered.length) { el.innerHTML = `<p style="color:rgba(255,255,255,0.3);font-size:0.85rem;grid-column:1/-1">No alternative matching profiles discovered.</p>`; return; }
+
+    el.innerHTML = filtered.map(item => {
+        const thumb = item.backdrop_path ? `${IMG_W300}${item.backdrop_path}` : `${IMG_POSTER}${item.poster_path}`;
+        const label = item.title || item.name;
+        const yr    = (item.release_date || item.first_air_date || "").split("-")[0];
+        const sc    = Math.round((item.vote_average || 0) * 10);
+        return `<div class="suggested-card" onclick="goToPlayer(${item.id}, '${type}')">
+                    <div class="suggested-thumb" style="background-image:url('${thumb}')"></div>
+                    <div class="suggested-info">
+                        <h5>${label}</h5>
+                        <p>${sc > 0 ? sc+"% Match" : "—"} · ${yr}</p>
+                    </div>
+                </div>`;
+    }).join("");
+}
+
+function buildSeasonSelector(details) {
+    const wrapper = document.getElementById("season-selector");
+    if (!wrapper) return;
+    const menu    = wrapper.querySelector(".psd-menu");
+    const label   = wrapper.querySelector(".psd-label");
+    const trigger = wrapper.querySelector(".psd-trigger");
+    const seasons = (details.seasons || []).filter(s => s.season_number > 0);
+
+    menu.innerHTML = seasons.map((s, i) =>
+        `<div class="psd-option${i === 0 ? " psd-selected" : ""}" data-value="${s.season_number}">Season ${s.season_number}</div>`
+    ).join("");
+
+    if (seasons.length > 0) label.textContent = `Season ${seasons[0].season_number}`;
+
+    trigger.addEventListener("click", (e) => {
+        e.stopPropagation();
+        wrapper.classList.toggle("open");
+    });
+
+    document.addEventListener("click", () => wrapper.classList.remove("open"));
+
+    menu.addEventListener("click", async (e) => {
+        const opt = e.target.closest(".psd-option");
+        if (!opt) return;
+        const val = parseInt(opt.dataset.value, 10);
+        menu.querySelectorAll(".psd-option").forEach(o => o.classList.remove("psd-selected"));
+        opt.classList.add("psd-selected");
+        label.textContent = opt.textContent;
+        wrapper.classList.remove("open");
+        await loadSeason(new URLSearchParams(location.search).get("id"), val);
+    });
+}
+
+async function loadSeason(seriesId, seasonNum) {
+    const listEl    = document.getElementById("episode-list");
+    const tabListEl = document.getElementById("episodes-tab-list");
+    if (!listEl || !tabListEl) return;
+    listEl.innerHTML    = `<div style="color:rgba(255,255,255,0.3);font-size:0.85rem;padding:12px">Buffering sequence nodes...</div>`;
+    tabListEl.innerHTML = listEl.innerHTML;
+
+    try {
+        const res  = await fetch(`${BASE}/tv/${seriesId}/season/${seasonNum}?api_key=${TMDB_KEY}`);
+        const data = await res.json();
+        const eps  = data.episodes || [];
+
+        const makeCard = (ep, active) => {
+            const thumb = ep.still_path ? `${IMG_W300}${ep.still_path}` : "";
+            const runtime = ep.runtime ? `${ep.runtime}m` : "";
+            const name    = ep.name || `Episode ${ep.episode_number}`;
+            const overview = ep.overview || "No item log synopsis available.";
+            return `
+                <div class="track-strip-item ${active ? "active-stream-track" : ""}" data-ep="${ep.episode_number}">
+                    <div class="track-thumbnail-capsule" style="${thumb ? `background-image:url('${thumb}')` : ""}"></div>
+                    <div class="track-description-block">
+                        <div class="track-row-header">
+                            <h4>${ep.episode_number}. ${name}</h4>
+                            <span class="track-duration-stamp">${runtime}</span>
+                        </div>
+                        <p class="track-summary-excerpt">${overview}</p>
+                    </div>
+                </div>`;
+        };
+
+        const html = eps.map((ep, i) => makeCard(ep, i === 0)).join("");
+        listEl.innerHTML    = html || `<p style="color:rgba(255,255,255,0.3);font-size:0.85rem">No runtime records found.</p>`;
+        tabListEl.innerHTML = html || listEl.innerHTML;
+
+        [listEl, tabListEl].forEach(container => {
+            container.querySelectorAll(".track-strip-item").forEach(card => {
+                card.addEventListener("click", () => {
+                    document.querySelectorAll(".track-strip-item").forEach(c => c.classList.remove("active-stream-track"));
+                    const ep = card.dataset.ep;
+                    document.querySelectorAll(`.track-strip-item[data-ep="${ep}"]`).forEach(c => c.classList.add("active-stream-track"));
+                });
+            });
+        });
+
+    } catch (err) {
+        listEl.innerHTML = `<p style="color:rgba(255,255,255,0.3);font-size:0.85rem">Failed to populate episode tracking.</p>`;
+    }
+}
+
+function buildMoviePanel(details, poster) {
+    if (poster) document.getElementById("movie-poster").style.backgroundImage = `url('${poster}')`;
+
+    const facts = [
+        ["Release",  details.release_date || "—"],
+        ["Runtime",  details.runtime ? `${details.runtime} min` : "—"],
+        ["Rating",   `★ ${(details.vote_average||0).toFixed(1)} / 10`],
+        ["Votes",    details.vote_count ? details.vote_count.toLocaleString() : "—"],
+        ["Language", details.original_language?.toUpperCase() || "—"],
+        ["Budget",   details.budget ? `$${(details.budget/1e6).toFixed(0)}M` : "—"],
+        ["Revenue",  details.revenue ? `$${(details.revenue/1e6).toFixed(0)}M` : "—"],
+        ["Status",   details.status || "—"],
+    ];
+
+    document.getElementById("movie-facts").innerHTML = facts.map(([k, v]) =>
+        `<div class="fact-row"><span>${k}</span><span>${v}</span></div>`
+    ).join("");
+}
+
+function getRating(details, type) {
+    try {
+        if (type === "movie") {
+            const us = (details.release_dates?.results || []).find(r => r.iso_3166_1 === "US");
+            return us?.release_dates?.[0]?.certification || "";
+        } else {
+            const us = (details.content_ratings?.results || []).find(r => r.iso_3166_1 === "US");
+            return us?.rating || "";
+        }
+    } catch { return ""; }
+}
+
+function goToPlayer(id, type) {
+    location.href = `videoplayer.html?id=${id}&type=${type}`;
+}
+
+// ── Pill Control Switching Action Triggers ──
+function setupTabs() {
+    document.addEventListener("click", (e) => {
+        const btn = e.target.closest(".capsule-tab-btn");
+        if (!btn) return;
+        const targetId = btn.getAttribute("data-target");
+        document.querySelectorAll(".capsule-tab-btn").forEach(b => {
+            b.classList.remove("active-pill");
+            b.setAttribute("aria-selected", "false");
+        });
+        document.querySelectorAll(".deck-viewpane").forEach(p => p.classList.remove("active-pane"));
+        btn.classList.add("active-pill");
+        btn.setAttribute("aria-selected", "true");
+        document.getElementById(targetId)?.classList.add("active-pane");
+    });
+}
+
+// ── Sticky Header Toggles ──
+function setupScrollNav() {
+    window.addEventListener("scroll", () => {
+        document.getElementById("main-nav")?.classList.toggle("scrolled", window.scrollY > 10);
+    });
+}
+
+
+// ── Drag to Scroll Implementation for Cast Row ──
+document.addEventListener("DOMContentLoaded", () => {
+    const slider = document.getElementById("ov-cast");
+    if (!slider) return;
+
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+
+    slider.addEventListener("mousedown", (e) => {
+        isDown = true;
+        startX = e.pageX - slider.offsetLeft;
+        scrollLeft = slider.scrollLeft;
+    });
+
+    slider.addEventListener("mouseleave", () => {
+        isDown = false;
+    });
+
+    slider.addEventListener("mouseup", () => {
+        isDown = false;
+    });
+
+    slider.addEventListener("mousemove", (e) => {
+        if (!isDown) return;
+        e.preventDefault(); // Prevents image/text dragging artifacts
+        const x = e.pageX - slider.offsetLeft;
+        const walk = (x - startX) * 1.5; // Multiply factor to adjust drag sensitivity
+        slider.scrollLeft = scrollLeft - walk;
+    });
+});
+
