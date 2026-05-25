@@ -1083,11 +1083,76 @@ body.videoplayer-body {
             min-width: 0;
             background-color: #000000;
             border-radius: 16px;
-            overflow: hidden;
+            overflow: visible;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
             border: 1px solid rgba(255, 255, 255, 0.06);
         }
-        .embedded-stream-unit { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .ambient-glow-layer {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            object-fit: cover;
+            border-radius: inherit;
+            filter: blur(65px) opacity(80%);
+            transform: scale(1.35);
+            pointer-events: none;
+        }
+        .ambient-glow-layer.ambient-disabled {
+            opacity: 0;
+            visibility: hidden;
+        }
+        .embedded-stream-unit {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            border-radius: inherit;
+            background-color: #000000;
+        }
+        .ambient-toggle-btn {
+            position: absolute;
+            right: 14px;
+            top: 14px;
+            z-index: 4;
+            width: 42px;
+            height: 42px;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.58);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transform: translateY(-4px);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+        }
+        .ambient-toggle-btn i {
+            opacity: 1;
+            transition: opacity 0.2s ease;
+        }
+        .cinema-viewport-container:hover .ambient-toggle-btn,
+        .ambient-toggle-btn:focus-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .ambient-toggle-btn:hover {
+            background: rgba(0, 0, 0, 0.78);
+            border-color: rgba(255, 255, 255, 0.34);
+        }
+        .ambient-toggle-btn.ambient-off {
+            color: #ffffff;
+        }
+        .ambient-toggle-btn.ambient-off i {
+            opacity: 0.38;
+        }
 
         .media-empty-layer {
             position: absolute;
@@ -1099,7 +1164,9 @@ body.videoplayer-body {
             gap: 16px;
             background: linear-gradient(135deg, #121216 0%, #050507 100%);
             color: rgba(255,255,255,0.35);
-            z-index: 1;
+            z-index: 3;
+            border-radius: inherit;
+            overflow: hidden;
         }
         .media-empty-layer .placeholder-backdrop {
             position: absolute;
@@ -1590,6 +1657,7 @@ body.videoplayer-body {
             .capsule-tab-btn { padding: 6px 12px; font-size: 0.85rem; }
             .sidebar-panel-container { display: none; }
             .cinema-viewport-container { border-radius: 10px; }
+            .ambient-toggle-btn { width: 38px; height: 38px; right: 10px; top: 10px; }
             .movie-poster-large { aspect-ratio: 3/4; }
             .page-content-tight { max-width: 100%; padding: 0 12px; }
         }

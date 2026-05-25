@@ -11,6 +11,7 @@ const IMG_ORIG    = IMAGE_URL;
 const IMG_W300    = "https://image.tmdb.org/t/p/w300";
 const IMG_W185    = "https://image.tmdb.org/t/p/w185";
 const IMG_POSTER  = POSTER_URL;
+const AMBIENT_VIDEO_PREF_KEY = "notflix_ambient_video_enabled";
 
 // Genre IDs
 const GENRES = {
@@ -525,6 +526,7 @@ async function initPlayerPage() {
 
     setupTabs();
     setupScrollNav();
+    setupAmbientVideoBackground();
     setupVideoProgressTracking();
 
     const params = new URLSearchParams(location.search);
@@ -886,6 +888,7 @@ function setPlayerSourceForItem(item, src) {
         source.removeAttribute("src");
         video.removeAttribute("src");
         video.load();
+        setAmbientVideoSource("");
         if (fallback) fallback.style.display = "flex";
         return;
     }
@@ -894,7 +897,118 @@ function setPlayerSourceForItem(item, src) {
         source.src = src;
         video.load();
     }
+    setAmbientVideoSource(src);
     if (fallback) fallback.style.display = "none";
+}
+
+function setupAmbientVideoBackground() {
+    const main = document.getElementById("theater-embedded-media");
+    const glow = document.getElementById("theater-ambient-media");
+    const toggle = document.getElementById("ambient-toggle-btn");
+    if (!main || !glow || glow.dataset.ambientBound === "true") return;
+
+    glow.dataset.ambientBound = "true";
+    glow.muted = true;
+    glow.playsInline = true;
+
+    const syncGlowTime = () => {
+        if (!Number.isFinite(main.currentTime) || Math.abs(main.currentTime - glow.currentTime) <= 0.3) return;
+        try {
+            glow.currentTime = main.currentTime;
+        } catch {}
+    };
+
+    const alignGlow = () => {
+        syncGlowTime();
+    };
+
+    const playGlow = () => {
+        if (!glow.src || !isAmbientVideoEnabled()) return;
+        alignGlow();
+        glow.playbackRate = main.playbackRate;
+        glow.play().catch(() => {});
+    };
+
+    main.addEventListener("play", playGlow);
+    main.addEventListener("pause", () => glow.pause());
+    main.addEventListener("ended", () => glow.pause());
+    main.addEventListener("seeking", () => {
+        glow.pause();
+        alignGlow();
+    });
+    main.addEventListener("seeked", () => {
+        alignGlow();
+        if (!main.paused) playGlow();
+    });
+    main.addEventListener("ratechange", () => {
+        glow.playbackRate = main.playbackRate;
+    });
+    main.addEventListener("timeupdate", alignGlow);
+    main.addEventListener("loadedmetadata", alignGlow);
+
+    if (toggle) {
+        toggle.addEventListener("click", () => {
+            const nextEnabled = !isAmbientVideoEnabled();
+            localStorage.setItem(AMBIENT_VIDEO_PREF_KEY, nextEnabled ? "true" : "false");
+            applyAmbientVideoPreference();
+            if (nextEnabled && !main.paused) playGlow();
+        });
+    }
+
+    applyAmbientVideoPreference();
+}
+
+function setAmbientVideoSource(src) {
+    const glow = document.getElementById("theater-ambient-media");
+    const main = document.getElementById("theater-embedded-media");
+    if (!glow) return;
+
+    if (!src) {
+        glow.pause();
+        glow.removeAttribute("src");
+        glow.load();
+        applyAmbientVideoPreference();
+        return;
+    }
+
+    if (glow.getAttribute("src") !== src) {
+        glow.src = src;
+        glow.load();
+    }
+
+    applyAmbientVideoPreference();
+    if (!isAmbientVideoEnabled()) return;
+    if (main) {
+        glow.playbackRate = main.playbackRate;
+        if (Number.isFinite(main.currentTime)) {
+            try {
+                glow.currentTime = main.currentTime;
+            } catch {}
+        }
+        if (!main.paused) glow.play().catch(() => {});
+    }
+}
+
+function isAmbientVideoEnabled() {
+    return localStorage.getItem(AMBIENT_VIDEO_PREF_KEY) !== "false";
+}
+
+function applyAmbientVideoPreference() {
+    const enabled = isAmbientVideoEnabled();
+    const glow = document.getElementById("theater-ambient-media");
+    const toggle = document.getElementById("ambient-toggle-btn");
+
+    if (glow) {
+        glow.classList.toggle("ambient-disabled", !enabled || !glow.getAttribute("src"));
+        if (!enabled) glow.pause();
+    }
+
+    if (toggle) {
+        toggle.classList.toggle("ambient-off", !enabled);
+        toggle.setAttribute("aria-pressed", enabled ? "true" : "false");
+        toggle.setAttribute("aria-label", enabled ? "Turn ambient background off" : "Turn ambient background on");
+        toggle.title = enabled ? "Ambient background on" : "Ambient background off";
+    }
 }
 
 function setupVideoProgressTracking() {

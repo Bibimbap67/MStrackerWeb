@@ -94,6 +94,7 @@
 
         <section class="stage-media-column">
             <div class="cinema-viewport-container">
+                <video id="theater-ambient-media" class="ambient-glow-layer" muted playsinline preload="metadata" aria-hidden="true"></video>
                 <div class="media-empty-layer" id="player-fallback-card">
                     <div class="placeholder-backdrop" id="placeholder-backdrop"></div>
                     <div class="placeholder-inner">
@@ -105,6 +106,9 @@
                 <video id="theater-embedded-media" class="embedded-stream-unit" controls preload="metadata">
                     <source src="" type="video/mp4">
                 </video>
+                <button class="ambient-toggle-btn" id="ambient-toggle-btn" type="button" aria-label="Turn ambient background off" aria-pressed="true" title="Ambient background">
+                    <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+                </button>
             </div>
 
             <div class="capsule-navigation-rail" role="tablist">
