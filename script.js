@@ -34,8 +34,10 @@ const CATEGORY_CONFIG = {
     mystery: { label: "Mystery", subtitle: "Every clue matters. Trust no one.",             url: () => `${BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=${GENRES.mystery}&sort_by=popularity.desc` },
 };
 
-// ==========================================================================
-// STATE
+// Watch History Expansion State
+let historyExpanded = false;
+
+// ========================================================================== // STATE
 // ==========================================================================
 let heroInterval     = null;
 let currentSlide     = 0;
@@ -86,9 +88,21 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (btnStream) {
             btnStream.addEventListener("click", () => {
                 if (currentModalId && currentModalType) {
+                    removePlanningItem(currentModalId, currentModalType);
                     saveWatchHistoryFromDetails(currentModalDetails || { id: currentModalId, type: currentModalType });
                     window.location.href = `videoplayer.html?id=${currentModalId}&type=${currentModalType}`;
                 }
+            });
+        }
+
+        const btnPlan = document.getElementById("modal-plan-btn");
+        if (btnPlan) {
+            btnPlan.addEventListener("click", () => {
+                if (!currentModalDetails) return;
+                savePlanningItem(currentModalDetails);
+                btnPlan.classList.add("is-planned");
+                btnPlan.setAttribute("aria-label", "Added to Planning");
+                renderPlanningToWatch();
             });
         }
     }
@@ -166,6 +180,7 @@ function loadHomePage() {
     homeLoaded = true;
 
     renderContinueWatching();
+    renderPlanningToWatch();
     initSkeletons("row-trending", 8);
     initSkeletons("row-anime", 6);
     initSkeletons("row-kdrama", 6);
@@ -457,6 +472,9 @@ async function openDetailModal(id, type) {
     currentModalId   = id;
     currentModalType = type;
     currentModalDetails = null;
+    const planButton = document.getElementById("modal-plan-btn");
+    planButton?.classList.remove("is-planned");
+    planButton?.setAttribute("aria-label", "Add to Planning");
 try {
         const [detailsRes, creditsRes] = await Promise.all([
             fetch(`${BASE_URL}/${type}/${id}?api_key=${TMDB_API_KEY}`),
@@ -474,6 +492,7 @@ try {
             year,
             posterPath: details.poster_path || "",
             posterUrl: details.poster_path ? `${POSTER_URL}${details.poster_path}` : "",
+            backdropUrl: details.backdrop_path ? `${IMAGE_URL}${details.backdrop_path}` : "",
             watchedAt: Date.now()
         };
         const score    = (details.vote_average * 10).toFixed(0);
@@ -491,6 +510,8 @@ try {
         document.getElementById("modal-runtime").innerText  = type === "tv"
             ? `${details.number_of_seasons || 1} Season(s)`
             : details.runtime ? `${details.runtime} mins` : "N/A";
+
+        updatePlanningButtonState();
 
         wrapper.classList.remove("skeleton");
     } catch (err) {
@@ -528,6 +549,7 @@ async function initPlayerPage() {
     setupScrollNav();
     setupAmbientVideoBackground();
     setupVideoProgressTracking();
+    setupCompleteButton();
 
     const params = new URLSearchParams(location.search);
     const MEDIA_ID = params.get("id");
@@ -587,6 +609,8 @@ async function loadPlayerPage(id, type) {
         posterPath: details.poster_path || "",
         posterUrl: details.poster_path ? `${POSTER_URL}${details.poster_path}` : "",
         backdropUrl: details.backdrop_path ? `${IMAGE_URL}${details.backdrop_path}` : "",
+        finalSeason: 0,
+        finalEpisode: 0,
     };
 
     document.getElementById("ov-title").innerText = title;
@@ -618,6 +642,9 @@ async function loadPlayerPage(id, type) {
         const requestedSeason = parseInt(params.get("season") || "", 10);
         const requestedEpisode = parseInt(params.get("episode") || "", 10);
         const firstSeason = (details.seasons || []).find(s => s.season_number > 0)?.season_number;
+        const finalSeasonInfo = [...(details.seasons || [])].reverse().find(s => s.season_number > 0 && s.episode_count > 0);
+        currentPlayerMedia.finalSeason = finalSeasonInfo?.season_number || 0;
+        currentPlayerMedia.finalEpisode = finalSeasonInfo?.episode_count || 0;
         const selectedSeason = Number.isFinite(requestedSeason) ? requestedSeason : firstSeason;
         buildSeasonSelector(details, selectedSeason);
         if (selectedSeason) await loadSeason(id, selectedSeason, Number.isFinite(requestedEpisode) ? requestedEpisode : 1);
@@ -634,6 +661,7 @@ async function loadPlayerPage(id, type) {
             posterPath: details.poster_path || "",
             posterUrl: details.poster_path ? `${POSTER_URL}${details.poster_path}` : "",
             href: `videoplayer.html?id=${id}&type=movie`,
+            isFinalItem: true,
         }, getMovieVideoSource(id));
     }
 }
@@ -850,6 +878,7 @@ function selectEpisode(seriesId, seasonNum, episode, updateUrl = true) {
         posterPath: currentPlayerMedia.posterPath || "",
         posterUrl: currentPlayerMedia.posterUrl || "",
         href,
+        isFinalItem: seasonNum === currentPlayerMedia.finalSeason && epNum === currentPlayerMedia.finalEpisode,
     }, getEpisodeVideoSource(seriesId, seasonNum, epNum));
 
     if (updateUrl) history.replaceState(null, "", href);
@@ -881,6 +910,7 @@ function setPlayerSourceForItem(item, src) {
     activePlaybackItem = item;
     activeProgressKey = item.key;
     activeProgressLoaded = false;
+    updateCompleteButtonState();
 
     if (fallbackTitle) fallbackTitle.textContent = src ? item.title : "No local video assigned";
 
@@ -1033,6 +1063,7 @@ function setupVideoProgressTracking() {
             duration: video.duration,
             updatedAt: Date.now(),
         });
+        updateCompleteButtonState();
     });
 
     video.addEventListener("ended", () => {
@@ -1044,7 +1075,50 @@ function setupVideoProgressTracking() {
             completed: true,
             updatedAt: Date.now(),
         });
+        updateCompleteButtonState();
     });
+}
+
+function setupCompleteButton() {
+    const button = document.getElementById("complete-watch-btn");
+    if (!button || button.dataset.bound === "true") return;
+    button.dataset.bound = "true";
+    button.addEventListener("click", () => {
+        if (button.disabled || !activePlaybackItem) return;
+        markCompleted(activePlaybackItem);
+        button.classList.add("completed");
+        button.innerHTML = `<i class="fa-solid fa-check" aria-hidden="true"></i> Completed`;
+    });
+    updateCompleteButtonState();
+}
+
+function updateCompleteButtonState() {
+    const button = document.getElementById("complete-watch-btn");
+    const video = document.getElementById("theater-embedded-media");
+    if (!button) return;
+    const isFinalItem = Boolean(activePlaybackItem?.isFinalItem);
+
+    const canComplete = Boolean(
+        activePlaybackItem &&
+        isFinalItem &&
+        isPlaybackDone(activePlaybackItem, video)
+    );
+    const alreadyCompleted = activePlaybackItem && isCompletedItem(activePlaybackItem.id, activePlaybackItem.type);
+
+    button.style.display = isFinalItem ? "inline-flex" : "none";
+    button.disabled = !canComplete || alreadyCompleted;
+    button.classList.toggle("ready", canComplete && !alreadyCompleted);
+    button.classList.toggle("completed", Boolean(alreadyCompleted));
+    button.innerHTML = alreadyCompleted
+        ? `<i class="fa-solid fa-check" aria-hidden="true"></i> Completed`
+        : `<i class="fa-solid fa-check" aria-hidden="true"></i> Mark Complete`;
+}
+
+function isPlaybackDone(item, video) {
+    const saved = item?.key ? readProgressMap()[item.key] : null;
+    if (saved?.completed || saved?.percent >= 0.98) return true;
+    if (!video || !video.duration) return false;
+    return video.ended || video.currentTime >= video.duration - 1;
 }
 
 function readProgressMap() {
@@ -1074,6 +1148,87 @@ function removeProgressEntry(key) {
         delete progress[key];
         localStorage.setItem(WATCH_PROGRESS_KEY, JSON.stringify(progress));
     }
+}
+
+function readList(key) {
+    try {
+        return JSON.parse(localStorage.getItem(key) || "[]");
+    } catch {
+        return [];
+    }
+}
+
+function writeList(key, items) {
+    localStorage.setItem(key, JSON.stringify(items));
+}
+
+function normalizeShelfItem(details) {
+    if (!details || !details.id || !details.type) return null;
+    const title = details.title || details.name || details.original_name || "Untitled";
+    const year = details.year || (details.release_date || details.first_air_date || "").split("-")[0] || "----";
+    return {
+        id: String(details.id),
+        type: details.type,
+        title,
+        year,
+        posterPath: details.posterPath || "",
+        posterUrl: details.posterUrl || (details.posterPath ? `${POSTER_URL}${details.posterPath}` : ""),
+        backdropUrl: details.backdropUrl || "",
+        href: details.href || `videoplayer.html?id=${details.id}&type=${details.type}`,
+        updatedAt: Date.now(),
+    };
+}
+
+function readPlanningItems() {
+    return readList(WATCH_PLANNING_KEY);
+}
+
+function savePlanningItem(details) {
+    const nextItem = normalizeShelfItem(details);
+    if (!nextItem) return;
+    const items = readPlanningItems().filter(item => !(String(item.id) === nextItem.id && item.type === nextItem.type));
+    items.unshift(nextItem);
+    writeList(WATCH_PLANNING_KEY, items.slice(0, 20));
+}
+
+function removePlanningItem(id, type) {
+    if (!id || !type) return;
+    const items = readPlanningItems().filter(item => !(String(item.id) === String(id) && item.type === type));
+    writeList(WATCH_PLANNING_KEY, items);
+}
+
+function isPlanningItem(id, type) {
+    return readPlanningItems().some(item => String(item.id) === String(id) && item.type === type);
+}
+
+function updatePlanningButtonState() {
+    const button = document.getElementById("modal-plan-btn");
+    if (!button || !currentModalDetails) return;
+    const planned = isPlanningItem(currentModalDetails.id, currentModalDetails.type);
+    button.classList.toggle("is-planned", planned);
+    button.setAttribute("aria-label", planned ? "Added to Planning" : "Add to Planning");
+}
+
+function readCompletedItems() {
+    return readList(WATCH_COMPLETED_KEY);
+}
+
+function isCompletedItem(id, type) {
+    return readCompletedItems().some(item => String(item.id) === String(id) && item.type === type);
+}
+
+function markCompleted(item) {
+    const completedItem = normalizeShelfItem({
+        ...item,
+        year: item.year || item.subtitle,
+        posterUrl: item.posterUrl || (item.posterPath ? `${POSTER_URL}${item.posterPath}` : ""),
+    });
+    if (!completedItem) return;
+
+    removePlanningItem(completedItem.id, completedItem.type);
+    const completed = readCompletedItems().filter(entry => !(entry.id === completedItem.id && entry.type === completedItem.type));
+    completed.unshift({ ...completedItem, completedAt: Date.now() });
+    writeList(WATCH_COMPLETED_KEY, completed.slice(0, 50));
 }
 
 function getContinueWatchingItems() {
@@ -1176,6 +1331,53 @@ function renderContinueWatching() {
     enableDragScroll(row);
 }
 
+function renderPlanningToWatch() {
+    const section = document.getElementById("planning-section");
+    const row = document.getElementById("row-planning");
+    if (!section || !row) return;
+
+    const items = readPlanningItems();
+    section.style.display = items.length ? "block" : "none";
+    if (!items.length) {
+        row.innerHTML = "";
+        return;
+    }
+
+    row.innerHTML = items.map(item => {
+        const poster = item.posterPath ? `background-image: url('${POSTER_URL}${escapeAttribute(item.posterPath)}')` : (item.posterUrl ? `background-image: url('${escapeAttribute(item.posterUrl)}')` : "");
+        return `
+            <div class="movie-card continue-card planning-card" data-id="${escapeAttribute(item.id)}" data-type="${escapeAttribute(item.type)}" data-href="${escapeAttribute(item.href || `videoplayer.html?id=${item.id}&type=${item.type}`)}">
+                <div class="card-image-placeholder" style="${poster}"></div>
+                <div class="continue-play-overlay">
+                    <div class="continue-play-btn">
+                        <i class="fa-solid fa-eye planning-watch-icon" aria-hidden="true"></i>
+                        <span>Watch</span>
+                    </div>
+                </div>
+                <div class="continue-overlay">
+                    <strong>${escapeHtml(item.title || "Planning to Watch")}</strong>
+                    <span>${escapeHtml(item.type === "tv" ? "TV Series" : "Movie")} - ${escapeHtml(item.year || "----")}</span>
+                    <small>Planning</small>
+                </div>
+            </div>`;
+    }).join("");
+
+    row.querySelectorAll(".planning-card").forEach(card => {
+        card.addEventListener("click", () => {
+            const id = card.dataset.id;
+            const type = card.dataset.type;
+            const item = readPlanningItems().find(entry => entry.id === id && entry.type === type);
+            if (item) {
+                removePlanningItem(id, type);
+                saveWatchHistoryFromDetails(item);
+            }
+            const href = card.dataset.href;
+            if (href && href !== "#") window.location.href = href;
+        });
+    });
+    enableDragScroll(row);
+}
+
 function getRating(details, type) {
     try {
         if (type === "movie") {
@@ -1261,24 +1463,27 @@ document.addEventListener("DOMContentLoaded", () => {
         function initProfile() {
             const user = localStorage.getItem('notflix_user');
             if (user) {
-                signinBtn.style.display      = 'none';
-                profileWrapper.style.display = 'flex';
-                pdUsername.textContent       = user;
+                if (signinBtn) signinBtn.style.display = 'none';
+                if (profileWrapper) profileWrapper.style.display = 'flex';
+                if (pdUsername) pdUsername.textContent = user;
             } else {
-                signinBtn.style.display      = 'flex';
-                profileWrapper.style.display = 'none';
+                if (signinBtn) signinBtn.style.display = 'flex';
+                if (profileWrapper) profileWrapper.style.display = 'none';
             }
         }
 
         // Toggle dropdown open/close
-        profileBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const isOpen = dropdown.classList.toggle('open');
-            profileBtn.setAttribute('aria-expanded', isOpen);
-        });
+        if (profileBtn && dropdown) {
+            profileBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpen = dropdown.classList.toggle('open');
+                profileBtn.setAttribute('aria-expanded', isOpen);
+            });
+        }
 
         // Close when clicking outside
         document.addEventListener('click', (e) => {
+            if (!profileBtn || !dropdown) return;
             if (!dropdown.contains(e.target) && e.target !== profileBtn) {
                 dropdown.classList.remove('open');
                 profileBtn.setAttribute('aria-expanded', 'false');
@@ -1286,35 +1491,37 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         // Sign out
-        signoutBtn.addEventListener('click', () => {
-            localStorage.removeItem('notflix_user');
-            dropdown.classList.remove('open');
-            initProfile();
-        });
+        if (signoutBtn) {
+            signoutBtn.addEventListener('click', () => {
+                localStorage.removeItem('notflix_user');
+                dropdown?.classList.remove('open');
+                initProfile();
+            });
+        }
 
         // ── Menu item → UserProfile navigation ──
         // Case A: Profile Settings  → UserProfile.html (top / profile section)
         const goProfile = document.querySelector('.pd-menu-list .pd-menu-item:nth-child(1)');
         if (goProfile) goProfile.addEventListener('click', () => {
-            window.location.href = 'UserProfile.html?section=profile';
+            window.location.href = 'userProfile.html?section=profile';
         });
 
         // Watch History → UserProfile.html#section-history
         const goHistory = document.querySelector('.pd-menu-list .pd-menu-item:nth-child(2)');
         if (goHistory) goHistory.addEventListener('click', () => {
-            window.location.href = 'UserProfile.html?section=history';
+            window.location.href = 'userProfile.html?section=history';
         });
 
         // Streaming Statistics → UserProfile.html#section-stats
         const goStats = document.querySelector('.pd-menu-list .pd-menu-item:nth-child(3)');
         if (goStats) goStats.addEventListener('click', () => {
-            window.location.href = 'UserProfile.html?section=stats';
+            window.location.href = 'userProfile.html?section=stats';
         });
 
         // Case B: Preference → UserProfile.html (smooth-scroll to Preferences)
         const goPrefs = document.querySelector('.pd-menu-list .pd-menu-item:nth-child(4)');
         if (goPrefs) goPrefs.addEventListener('click', () => {
-            window.location.href = 'UserProfile.html?section=preferences';
+            window.location.href = 'userProfile.html?section=preferences';
         });
 
         // Hover highlight on menu items
@@ -1341,6 +1548,8 @@ const DEFAULT_LANG = "en";
 const DEFAULT_THEME = "dark";
 const WATCH_HISTORY_KEY = "notflix_watch_history";
 const WATCH_PROGRESS_KEY = "notflix_watch_progress";
+const WATCH_PLANNING_KEY = "notflix_watch_planning";
+const WATCH_COMPLETED_KEY = "notflix_watch_completed";
 
 // Local video paths used by the player when a TMDB title has a matching local file.
 const VIDEO_SOURCES = {
@@ -1535,7 +1744,7 @@ function applyTranslations(dictionary) {
 
     setOwnText(document.querySelector(".hero-btn-primary"), dictionary.home.watchNow);
     setOwnText(document.querySelector(".hero-btn-secondary"), dictionary.home.trailer);
-    document.querySelectorAll(".category-section:not(.continue-section) .category-title").forEach((title, index) => {
+    document.querySelectorAll(".category-section:not(.continue-section):not(.planning-section) .category-title").forEach((title, index) => {
         if (dictionary.home.rows[index]) title.textContent = dictionary.home.rows[index];
     });
 
@@ -1545,8 +1754,6 @@ function applyTranslations(dictionary) {
     setText("#title-stats", dictionary.profile.stats);
     setText(".stats-box h3", dictionary.profile.total);
     setText(".completed-lbl", dictionary.profile.completed);
-    setText("#tab-watching", dictionary.profile.watching);
-    setText("#tab-planning", dictionary.profile.planning);
     setText("#title-breakdown", dictionary.profile.breakdown);
     document.querySelectorAll(".media-label").forEach((label, index) => {
         label.textContent = index === 0 ? dictionary.profile.movies : dictionary.profile.series;
@@ -1583,8 +1790,23 @@ function setOwnText(element, text) {
 
 function initProfilePage() {
     setupUsernameEditor();
+    setupDemoReset();
     renderWatchHistory();
+    setupHistorySeeAllButton();
+    setupHistorySliderDrag();
     handleProfileDeepLink();
+}
+
+function setupDemoReset() {
+    const button = document.getElementById("reset-demo-btn");
+    if (!button || button.dataset.bound === "true") return;
+    button.dataset.bound = "true";
+    button.addEventListener("click", () => {
+        localStorage.clear();
+        button.classList.add("loading");
+        button.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> RESETTING`;
+        setTimeout(() => window.location.reload(), 450);
+    });
 }
 
 function initSignupPage() {
@@ -1777,6 +1999,7 @@ function saveWatchHistoryFromDetails(details) {
         posterUrl,
         watchedAt: details.watchedAt || Date.now(),
     };
+    removePlanningItem(nextItem.id, nextItem.type);
     const history = readWatchHistory().filter(item => !(String(item.id) === nextItem.id && item.type === nextItem.type));
     history.unshift(nextItem);
     localStorage.setItem(WATCH_HISTORY_KEY, JSON.stringify(history.slice(0, 20)));
@@ -1804,6 +2027,10 @@ function renderWatchHistory() {
         });
     });
     updateHistoryStats(history, dictionary);
+    
+    // Setup drag and see all functionality
+    setupHistorySeeAllButton();
+    setupHistorySliderDrag();
 }
 
 function createWatchHistoryCard(item, index, dictionary) {
@@ -1830,13 +2057,67 @@ function createWatchHistoryCard(item, index, dictionary) {
             </div>`;
 }
 
+function setupHistorySeeAllButton() {
+    const btn = document.getElementById("history-see-all-btn");
+    const grid = document.querySelector(".watch-history-grid");
+    if (!btn || !grid) return;
+    if (btn.dataset.bound === "true") return;
+    btn.dataset.bound = "true";
+    
+    btn.addEventListener("click", () => {
+        historyExpanded = !historyExpanded;
+        grid.classList.toggle("expanded", historyExpanded);
+        btn.textContent = historyExpanded ? "Collapse" : "See All";
+    });
+}
+
+function setupHistorySliderDrag() {
+    const grid = document.querySelector(".watch-history-grid");
+    if (!grid || grid.dataset.drag === "true") return;
+    grid.dataset.drag = "true";
+    
+    let isDragging = false;
+    let startX;
+    let scrollLeft;
+
+    grid.addEventListener("mousedown", (e) => {
+        isDragging = true;
+        startX = e.pageX - grid.offsetLeft;
+        scrollLeft = grid.scrollLeft;
+        grid.classList.add("drag-active");
+    });
+
+    grid.addEventListener("mouseleave", () => {
+        isDragging = false;
+        grid.classList.remove("drag-active");
+    });
+
+    grid.addEventListener("mouseup", () => {
+        isDragging = false;
+        grid.classList.remove("drag-active");
+    });
+
+    grid.addEventListener("mousemove", (e) => {
+        if (!isDragging || historyExpanded) return;
+        e.preventDefault();
+        const x = e.pageX - grid.offsetLeft;
+        const walk = (x - startX) * 1;
+        grid.scrollLeft = scrollLeft - walk;
+    });
+}
+
 function updateHistoryStats(history, dictionary = translations[localStorage.getItem("user-lang") || DEFAULT_LANG]) {
-    const movieCount = history.filter(item => item.type === "movie").length;
-    const seriesCount = history.filter(item => item.type === "tv").length;
-    const total = history.length;
+    const planning = readPlanningItems();
+    const completed = readCompletedItems();
+    const watching = getWatchingStatItems(history);
+    const movieCount = completed.filter(item => item.type === "movie").length;
+    const seriesCount = completed.filter(item => item.type === "tv").length;
+    const total = completed.length;
     const moviePct = total ? Math.round((movieCount / total) * 100) : 0;
     const seriesPct = total ? 100 - moviePct : 0;
     setText("#main-counter", String(total));
+    setText("#tab-watching", `${watching.length} Watching`);
+    setText("#tab-planning", `${planning.length} Planning`);
     setText("#count-movies", String(movieCount));
     setText("#count-series", String(seriesCount));
     setText("#lbl-movies-pct", `${dictionary.profile.movies} ${moviePct}%`);
@@ -1845,6 +2126,19 @@ function updateHistoryStats(history, dictionary = translations[localStorage.getI
     const seriesBar = document.getElementById("bar-series");
     if (moviesBar) moviesBar.style.width = `${moviePct}%`;
     if (seriesBar) seriesBar.style.width = `${seriesPct}%`;
+}
+
+function getWatchingStatItems(history = readWatchHistory()) {
+    const activeProgress = getContinueWatchingItems().map(item => ({
+        id: String(item.id),
+        type: item.type,
+    }));
+    const map = new Map();
+    [...activeProgress, ...history].forEach(item => {
+        if (!item.id || !item.type || isCompletedItem(item.id, item.type)) return;
+        map.set(`${item.type}:${item.id}`, item);
+    });
+    return [...map.values()];
 }
 
 function escapeHtml(value) {

@@ -415,6 +415,19 @@ body.videoplayer-body {
     filter: drop-shadow(0 2px 8px rgba(0,0,0,0.7));
 }
 
+.planning-watch-icon {
+    width: 44px;
+    height: 44px;
+    border: 1.5px solid rgba(255,255,255,0.9);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 18px;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.7));
+}
+
 .continue-play-btn span {
     font-size: 9px;
     font-weight: 800;
@@ -649,6 +662,14 @@ body.videoplayer-body {
     border-radius: 50%;
     font-size: 1.2rem;
     cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+.btn-circle:hover,
+.btn-circle.is-planned {
+    background: #e8b84b;
+    border-color: #e8b84b;
+    color: #000;
+    transform: scale(1.04);
 }
 
 .modal-body-grid {
@@ -1152,6 +1173,42 @@ body.videoplayer-body {
         }
         .ambient-toggle-btn.ambient-off i {
             opacity: 0.38;
+        }
+
+        .complete-watch-btn {
+            align-self: flex-start;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 999px;
+            background: rgba(255,255,255,0.06);
+            color: rgba(255,255,255,0.45);
+            padding: 9px 16px;
+            font: inherit;
+            font-size: 0.88rem;
+            font-weight: 800;
+            cursor: not-allowed;
+            transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+        }
+        .complete-watch-btn.ready {
+            color: #fff;
+            cursor: pointer;
+            border-color: rgba(255,255,255,0.24);
+        }
+        .complete-watch-btn.ready:hover,
+        .complete-watch-btn.completed {
+            background: #2ecc71;
+            border-color: #2ecc71;
+            color: #07140c;
+            transform: translateY(-1px);
+        }
+        .complete-watch-btn:disabled {
+            opacity: 0.65;
+        }
+        .complete-watch-btn.completed {
+            cursor: default;
+            opacity: 1;
         }
 
         .media-empty-layer {
@@ -1744,6 +1801,31 @@ body.videoplayer-body {
         .main-title {
             font-size: 32px; font-weight: 800; letter-spacing: -0.5px;
         }
+        
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .see-all-btn {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-yellow);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 4px 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: opacity 0.2s ease;
+        }
+        
+        .see-all-btn:hover {
+            color:#fdb712;
+        }
+        
         .section-header::before {
             content: '';
             position: absolute;
@@ -1795,13 +1877,27 @@ body.videoplayer-body {
             font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 6px;
         }
 
-        /* ── Watch History Grid ── */
+        /* ── Watch History Slider ── */
         .watch-history-grid {
-            display: flex; 
-            flex-wrap: wrap; 
+            display: flex;
             gap: 15px;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            padding: 12px 0;
+            cursor: grab;
+            user-select: none;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
             margin-bottom: 30px;
         }
+        .watch-history-grid::-webkit-scrollbar { display: none; }
+        .watch-history-grid.drag-active { cursor: grabbing; scroll-behavior: auto; }
+        .watch-history-grid.expanded { 
+            flex-wrap: wrap;
+            overflow-x: visible;
+            cursor: default;
+        }
+        .watch-history-grid.expanded.drag-active { cursor: grabbing; }
 
         /* ── Movie card (watch history) ── */
         .wh-card {
@@ -1859,10 +1955,6 @@ body.videoplayer-body {
         .wh-card:hover .wh-poster-overlay { background: rgba(0,0,0,0.25); }
         .wh-card:hover .wh-play-btn { opacity: 1; transform: scale(1); }
 
-        .highlight-border {
-            border: 2px solid #6A3aff;
-            box-shadow: 0 0 10px rgba(106,58,255,0.3);
-        }
         .wh-title { font-size: 11px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .wh-meta  { font-size: 10px; color: var(--text-muted); margin-top: -4px; }
 
@@ -1915,6 +2007,19 @@ body.videoplayer-body {
         }
         .btn-select:hover  { background-color: var(--btn-active); }
         .btn-select.active { border-color: var(--text-color); }
+
+        .reset-demo-btn {
+            grid-column: 1 / -1;
+            justify-content: center;
+        }
+        .reset-demo-btn:hover {
+            border-color: rgba(232,184,75,0.7);
+            color: var(--accent-yellow);
+        }
+        .reset-demo-btn.loading {
+            pointer-events: none;
+            opacity: 0.75;
+        }
 
         /* Font preview buttons */
         #font-inter   { font-family: 'Inter', sans-serif !important; }
