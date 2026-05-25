@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -7,13 +7,15 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Lexend+Deca:wght@400;700&family=Work+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body class="index-body">
 
     <nav class="global-navbar" id="main-nav">
         <div class="nav-left">
             <div class="nav-logo-container">
-                <img src="MStracker.png" alt="Mstracker" class="brand-logo-img">
+                <img src="images/MStracker.png" alt="Mstracker" class="brand-logo-img">
             </div>
         </div>
 
@@ -45,12 +47,9 @@
             <div class="nav-profile-wrapper" id="nav-profile-wrapper" style="display:none;">
                 <button class="nav-profile-btn" id="nav-profile-btn" aria-label="Open profile menu" aria-expanded="false">
                     <!-- PROFILE IMAGE: replace the src below with your desired image path, e.g. src="my-photo.jpg" -->
-                    <img src="" alt="Profile" class="nav-profile-img" id="nav-profile-img"
+                    <img src="images/nayeon&momo.png" alt="Profile" class="nav-profile-img" id="nav-profile-img"
                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-                    <!-- Fallback avatar shown when no src is set -->
-                    <span class="nav-profile-fallback" id="nav-profile-fallback">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
-                    </span>
+                   
                 </button>
 
                 <!-- Profile Dropdown Modal -->
@@ -58,11 +57,8 @@
                     <!-- Big avatar at top of dropdown -->
                     <div class="pd-avatar-ring">
                         <!-- PROFILE IMAGE (dropdown): same src as above -->
-                        <img src="" alt="Profile" class="pd-avatar-img" id="pd-avatar-img"
+                        <img src="images/nayeon&momo.png" alt="Profile" class="pd-avatar-img" id="pd-avatar-img"
                              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-                        <span class="pd-avatar-fallback" id="pd-avatar-fallback">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
-                        </span>
                     </div>
                     <p class="pd-username" id="pd-username">Username</p>
                     <p class="pd-label">MY ACCOUNT</p>
@@ -122,6 +118,10 @@
         </main>
 
         <div class="catalog-container">
+            <section class="category-section continue-section" id="continue-section" style="display:none;">
+                <h2 class="category-title">Continue Watching</h2>
+                <div class="cards-slider continue-slider" id="row-continue"></div>
+            </section>
             <section class="category-section">
                 <h2 class="category-title">Top 10 Today</h2>
                 <div class="cards-slider" id="row-trending"></div>
@@ -192,6 +192,7 @@
             </div>
         </div>
     </div>
-    <script src="script.js"></script>
+    <script src="webTranslator.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
