@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sign Up - Where is Daredevil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
+<link rel="stylesheet" href="style.css"/>
+</head>
+<body class="signup-body">
+
+<div class="scene">
+  <div class="poster">
+    <img src="images/poster2.jpg" alt="Daredevil poster 2"/>
+    <img src="images/poster1.jpg" alt="Daredevil poster 1"/>
+    <img src="images/poster3.jpg" alt="Daredevil poster 3"/>
+  </div>
+  <div class="seam seam1"></div>
+  <div class="seam seam2"></div>
+  <div class="tint"></div>
+  <div class="glow"></div>
+  <div class="fade"></div>
+  <div class="vignette"></div>
+
+  <div class="panel">
+    <div class="brand">
+      <p class="brand-sub">Todays talk</p>
+      <h1 class="brand-name">Where is<br>The Daredevil?</h1>
+    </div>
+
+    <div class="tabs">
+      <button class="tab" id="tab-login" type="button" data-auth-tab="login">Log In</button>
+      <button class="tab active" id="tab-signup" type="button" data-auth-tab="signup">Sign Up</button>
+    </div>
+
+    <div class="fields hidden" id="form-login">
+      <div class="field">
+        <label class="field-label" for="lu">Username</label>
+        <div class="field-row" id="w-lu"><i class="ti ti-at field-icon"></i><input class="field-input" id="lu" type="text" placeholder="enter username"/></div>
+        <p class="err" id="e-lu">Username is required.</p>
+      </div>
+      <div class="field">
+        <label class="field-label" for="lp">Password</label>
+        <div class="field-row" id="w-lp"><i class="ti ti-lock field-icon"></i><input class="field-input" id="lp" type="password" placeholder="password"/><button class="eye-btn" type="button" data-eye-input="lp" data-eye-icon="ei-lp" aria-label="Show password"><i class="ti ti-eye" id="ei-lp"></i></button></div>
+        <p class="err" id="e-lp">Password is required.</p>
+      </div>
+      <div class="forgot"><a href="#">Forgot Password?</a></div>
+      <button class="btn" type="button" id="login-submit">Log In</button>
+      <div class="divider"><hr/><span>or</span><hr/></div>
+      <p class="switch">Don't have an account? <a data-auth-tab="signup">Sign Up</a></p>
+    </div>
+
+    <div class="fields" id="form-signup">
+      <div class="field">
+        <label class="field-label" for="su">Username</label>
+        <div class="field-row" id="w-su"><i class="ti ti-at field-icon"></i><input class="field-input" id="su" type="text" placeholder="choose a username"/></div>
+        <p class="err" id="e-su">Username must be at least 3 characters.</p>
+      </div>
+      <div class="field">
+        <label class="field-label" for="se">Email Address</label>
+        <div class="field-row" id="w-se"><i class="ti ti-mail field-icon"></i><input class="field-input" id="se" type="email" placeholder="your@email.com"/></div>
+        <p class="err" id="e-se">Enter a valid email address.</p>
+      </div>
+      <div class="field">
+        <label class="field-label" for="sp">Password</label>
+        <div class="field-row" id="w-sp"><i class="ti ti-lock field-icon"></i><input class="field-input" id="sp" type="password" placeholder="create a password"/><button class="eye-btn" type="button" data-eye-input="sp" data-eye-icon="ei-sp" aria-label="Show password"><i class="ti ti-eye" id="ei-sp"></i></button></div>
+        <div class="strength"><div class="sbar" id="b1"></div><div class="sbar" id="b2"></div><div class="sbar" id="b3"></div><div class="sbar" id="b4"></div><span class="slabel" id="sl"></span></div>
+        <p class="err" id="e-sp">Password must be at least 8 characters.</p>
+      </div>
+      <div class="field">
+        <label class="field-label" for="sc">Confirm Password</label>
+        <div class="field-row" id="w-sc"><i class="ti ti-lock-check field-icon"></i><input class="field-input" id="sc" type="password" placeholder="re-enter password"/><button class="eye-btn" type="button" data-eye-input="sc" data-eye-icon="ei-sc" aria-label="Show password"><i class="ti ti-eye" id="ei-sc"></i></button></div>
+        <p class="err" id="e-sc">Passwords do not match.</p>
+      </div>
+      <div class="signup-spacer"></div>
+      <button class="btn" type="button" id="signup-submit">Create Account</button>
+      <div class="divider"><hr/><span>or</span><hr/></div>
+      <p class="switch">Already have an account? <a data-auth-tab="login">Log In</a></p>
+    </div>
+  </div>
+</div>
+
+<div class="loader" id="loader"><div class="spinner"></div><p id="loader-msg">Loading...</p></div>
+
+<script src="script.js"></script>
+</body>
+</html>
