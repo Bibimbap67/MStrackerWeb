@@ -1,0 +1,302 @@
+﻿<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NotFlix – Profile</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Lexend+Deca:wght@400;700&family=Work+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body class="profile-body">
+
+    <nav class="global-navbar" id="main-nav">
+        <div class="nav-left">
+            <div class="nav-logo-container">
+                <img src="images/MStracker.png" alt="Mstracker" class="brand-logo-img">
+            </div>
+        </div>
+
+        <ul class="nav-links-categories" id="nav-categories">
+            <li class="category-item" data-page="action"><a href="index.html#action">Action</a></li>
+            <li class="category-item" data-page="comedy"><a href="index.html#comedy">Comedy</a></li>
+            <li class="category-item" data-page="drama"><a href="index.html#drama">Drama</a></li>
+            <li class="category-item" data-page="scifi"><a href="index.html#scifi">Sci-Fi</a></li>
+            <li class="category-item" data-page="horror"><a href="index.html#horror">Horror</a></li>
+            <li class="category-item" data-page="mystery"><a href="index.html#mystery">Mystery</a></li>
+            <span class="nav-active-indicator" id="nav-indicator"></span>
+        </ul>
+
+        <div class="nav-right">
+            <a href="#" class="social-icon-link" aria-label="Join Discord Server">
+                <svg class="discord-icon" viewBox="0 0 127.14 96.36" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,53.22,6.83,77.19,77.19,0,0,0,49.88,0,105.15,105.15,0,0,0,19.44,8.07C3.66,31.58-1.86,54.65,1,77.53A105.73,105.73,0,0,0,32,96.36a74.37,74.37,0,0,0,6.73-11A68.52,68.52,0,0,1,28,80.17c1-.76,2-1.56,3-2.38a74.83,74.83,0,0,0,65.06,0c1,.82,2,1.62,3,2.38a68.15,68.15,0,0,1-10.74,5.18,74.61,74.61,0,0,0,6.73,11,105.54,105.54,0,0,0,31.6-18.83C129.62,49.7,123.77,26.9,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53S36.18,40.36,42.45,40.36,53.83,46,53.83,53,48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.24,60,73.24,53S78.41,40.36,84.69,40.36,96.07,46,96.07,53,91,65.69,84.69,65.69Z"/>
+                </svg>
+            </a>
+
+            <button class="nav-btn-signin" type="button" id="nav-signin-btn" onclick="window.location.href='signup.html'">
+                <svg class="signin-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                    <polyline points="10 17 15 12 10 7"/>
+                    <line x1="15" y1="12" x2="3" y2="12"/>
+                </svg>
+                Sign In
+            </button>
+
+            <div class="nav-profile-wrapper" id="nav-profile-wrapper" style="display:none;">
+                <button class="nav-profile-btn" id="nav-profile-btn" aria-label="Open profile menu" aria-expanded="false">
+                    <img src="images/nayeon&momo.png" alt="Profile" class="nav-profile-img" id="nav-profile-img"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                </button>
+
+                <div class="profile-dropdown" id="profile-dropdown" role="dialog" aria-label="Profile menu">
+                    <div class="pd-avatar-ring">
+                        <img src="images/nayeon&momo.png" alt="Profile" class="pd-avatar-img" id="pd-avatar-img"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                    </div>
+                    <p class="pd-username" id="pd-username">Username</p>
+                    <p class="pd-label">MY ACCOUNT</p>
+                    <div class="pd-divider"></div>
+                    <ul class="pd-menu-list">
+                        <li class="pd-menu-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+                            Profile Settings
+                        </li>
+                        <li class="pd-menu-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                            Watch History
+                        </li>
+                        <li class="pd-menu-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                            Streaming Statistics
+                        </li>
+                        <li class="pd-menu-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+                            Preference
+                        </li>
+                    </ul>
+                    <div class="pd-divider"></div>
+                    <ul class="pd-menu-list">
+                        <li class="pd-menu-item pd-signout" id="pd-signout-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                            Sign Out
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="profile-container">
+
+        <section class="profile-card" id="section-profile">
+            <div class="avatar-container">
+                <img src="images/nayeon&momo.png" alt="Avatar"
+                     onerror="this.src='https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=90&h=90&fit=crop'">
+            </div>
+            <div class="profile-info">
+                <div class="username-row">
+                    <h2 id="username-display">Username</h2>
+                    <button class="edit-username-btn" id="edit-username-btn" title="Edit username">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                    </button>
+                </div>
+                <p id="member-since">Premium Member since March 2026</p>
+                <div class="tags-container">
+                    <span class="tag">Movie</span>
+                    <span class="tag">Drama</span>
+                    <span class="tag">Action</span>
+                    <span class="tag">Comedy</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="section-header" id="section-history">
+            <div class="overline">Overview</div>
+            <div class="main-title" id="title-history">Watch History</div>
+        </section>
+
+        <div class="watch-history-grid">
+
+            <div class="wh-card">
+                <div class="wh-poster">
+                    <img src="https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&q=80&w=200" alt="Daredevil">
+                    <div class="wh-poster-overlay">
+                        <div class="wh-play-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="11" stroke="rgba(255,255,255,0.9)" stroke-width="1.5"/>
+                                <path d="M10 8.5l6 3.5-6 3.5V8.5z" fill="white"/>
+                            </svg>
+                            <span class="wh-play-label">Continue</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="wh-title">Daredevil: Born...</div>
+                <div class="wh-meta">Series – 2025</div>
+            </div>
+
+            <div class="wh-card">
+                <div class="wh-poster">
+                    <div class="wh-poster-overlay">
+                        <div class="wh-play-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="11" stroke="rgba(255,255,255,0.9)" stroke-width="1.5"/>
+                                <path d="M10 8.5l6 3.5-6 3.5V8.5z" fill="white"/>
+                            </svg>
+                            <span class="wh-play-label">Continue</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="wh-title">Stranger Things</div>
+                <div class="wh-meta">Series – 2022</div>
+            </div>
+
+            <div class="wh-card">
+                <div class="wh-poster">
+                    <div class="wh-poster-overlay">
+                        <div class="wh-play-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="11" stroke="rgba(255,255,255,0.9)" stroke-width="1.5"/>
+                                <path d="M10 8.5l6 3.5-6 3.5V8.5z" fill="white"/>
+                            </svg>
+                            <span class="wh-play-label">Continue</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="wh-title">Interstellar</div>
+                <div class="wh-meta">Movie – 2014</div>
+            </div>
+
+            <div class="wh-card">
+                <div class="wh-poster highlight-border">
+                    <div class="wh-poster-overlay">
+                        <div class="wh-play-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="11" stroke="rgba(255,255,255,0.9)" stroke-width="1.5"/>
+                                <path d="M10 8.5l6 3.5-6 3.5V8.5z" fill="white"/>
+                            </svg>
+                            <span class="wh-play-label">Continue</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="wh-title">Arcane</div>
+                <div class="wh-meta">Series – 2024</div>
+            </div>
+
+            <div class="wh-card">
+                <div class="wh-poster">
+                    <div class="wh-poster-overlay">
+                        <div class="wh-play-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="11" stroke="rgba(255,255,255,0.9)" stroke-width="1.5"/>
+                                <path d="M10 8.5l6 3.5-6 3.5V8.5z" fill="white"/>
+                            </svg>
+                            <span class="wh-play-label">Continue</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="wh-title">Dune: Part Two</div>
+                <div class="wh-meta">Movie – 2024</div>
+            </div>
+
+        </div>
+
+        <section class="section-header" id="section-stats">
+            <div class="overline" id="title-habits-overline">Viewing Habits</div>
+            <div class="main-title" id="title-stats">Statistics</div>
+        </section>
+
+        <div class="stats-box">
+            <h3>TOTAL WATCHED</h3>
+            <div class="counter-big" id="main-counter">67</div>
+            <div class="completed-lbl">COMPLETED</div>
+            <div class="sub-stats">
+                <span class="stat-tab blue-text" id="tab-watching">3 Watching</span>
+                <span class="stat-tab gray-text" id="tab-planning">2 Planning</span>
+            </div>
+        </div>
+
+        <div class="breakdown-box">
+            <h4 id="title-breakdown">BREAKDOWN</h4>
+            <div class="grid-2">
+                <div class="media-card">
+                    <div class="media-icon"><i class="fa-solid fa-clapperboard"></i></div>
+                    <div class="media-count blue" id="count-movies">39</div>
+                    <div class="media-label">Movies</div>
+                </div>
+                <div class="media-card">
+                    <div class="media-icon"><i class="fa-solid fa-tv"></i></div>
+                    <div class="media-count green" id="count-series">13</div>
+                    <div class="media-label">Series</div>
+                </div>
+            </div>
+            <div class="progress-wrapper">
+                <div class="progress-bar">
+                    <div class="prog-movies" id="bar-movies"></div>
+                    <div class="prog-series" id="bar-series"></div>
+                </div>
+                <div class="progress-labels">
+                    <span id="lbl-movies-pct">Movies 75%</span>
+                    <span id="lbl-series-pct">Series 25%</span>
+                </div>
+            </div>
+        </div>
+
+        <section class="section-header" id="section-preferences">
+            <div class="overline">Personalization</div>
+            <div class="main-title" id="title-pref">Preferences</div>
+        </section>
+
+        <div class="pref-group">
+            <div class="pref-label" id="lbl-theme">Theme</div>
+            <div class="options-grid">
+                <button class="btn-select active" id="theme-dark" onclick="setTheme('dark')">
+                    <span class="batman-icon">🦇</span> DARK
+                </button>
+                <button class="btn-select" id="theme-light" onclick="setTheme('light')">
+                    <i class="fa-solid fa-bolt" style="color:#E1B041;"></i> LIGHT
+                </button>
+            </div>
+        </div>
+
+        <div class="pref-group">
+            <div class="pref-label">Font</div>
+            <div class="options-grid" style="grid-template-columns:1fr 1fr;">
+                <button class="btn-select active" id="font-inter"   onclick="setFont('\'Inter\', sans-serif','font-inter')">Inter (Default)</button>
+                <button class="btn-select"         id="font-mono"   onclick="setFont('\'JetBrains Mono\', monospace','font-mono')">JetBrains Mono</button>
+                <button class="btn-select"         id="font-sans"   onclick="setFont('\'Work Sans\', sans-serif','font-sans')">Work Sans</button>
+                <button class="btn-select"         id="font-lexend" onclick="setFont('\'Lexend Deca\', sans-serif','font-lexend')">Lexend Deca</button>
+            </div>
+        </div>
+
+        <div class="pref-group">
+            <div class="pref-label" id="lbl-lang">Language</div>
+            <div class="options-grid">
+                <button class="btn-select active" id="lang-en" onclick="setLanguage('en')">
+                    <img class="flag" src="https://flagcdn.com/w40/gb.png" alt="UK"> English
+                </button>
+                <button class="btn-select" id="lang-ja" onclick="setLanguage('ja')">
+                    <img class="flag" src="https://flagcdn.com/w40/jp.png" alt="Japan"> 日本語
+                </button>
+                <button class="btn-select" id="lang-ko" onclick="setLanguage('ko')">
+                    <img class="flag" src="https://flagcdn.com/w40/kr.png" alt="Korea"> 한국어
+                </button>
+                <button class="btn-select" id="lang-zh" onclick="setLanguage('zh')">
+                    <img class="flag" src="https://flagcdn.com/w40/cn.png" alt="China"> 中文
+                </button>
+            </div>
+        </div>
+
+    </div>
+<script src="webTranslator.js"></script>
+<script src="localVideoSources.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
