@@ -1232,7 +1232,7 @@ const WATCH_PROGRESS_KEY = "notflix_watch_progress";
 const VIDEO_SOURCES = {
     movie: {},
     episode: {
-        "tv:76479:s1:e1": "videos/The Boys (2019) S1E1.mp4",
+        "tv:85937:s3:e10": "videos/demonSlayerS3E10.mp4",
         "tv:95479:s1:e1": "videos/JUJUTSU KAISEN (2020) S1E1.mp4",
         "tv:95479:s1:e33": "videos/JJKS2EP09.mp4",
     },
