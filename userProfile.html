@@ -120,7 +120,10 @@
 
         <section class="section-header" id="section-history">
             <div class="overline">Overview</div>
-            <div class="main-title" id="title-history">Watch History</div>
+            <div class="history-header">
+                <div class="main-title" id="title-history">Watch History</div>
+                <button class="see-all-btn" id="history-see-all-btn">See All</button>
+            </div>
         </section>
 
         <div class="watch-history-grid">
@@ -175,7 +178,7 @@
             </div>
 
             <div class="wh-card">
-                <div class="wh-poster highlight-border">
+                <div class="wh-poster">
                     <div class="wh-poster-overlay">
                         <div class="wh-play-btn">
                             <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none">
@@ -262,6 +265,9 @@
                 </button>
                 <button class="btn-select" id="theme-light" onclick="setTheme('light')">
                     <i class="fa-solid fa-bolt" style="color:#E1B041;"></i> LIGHT
+                </button>
+                <button class="btn-select reset-demo-btn" id="reset-demo-btn" type="button">
+                    <i class="fa-solid fa-rotate-left"></i> RESET DEMO
                 </button>
             </div>
         </div>
