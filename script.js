@@ -1,6 +1,4 @@
-﻿// ==========================================================================
-// CONFIGURATION
-// ==========================================================================
+﻿// CONFIGURATION
 const TMDB_API_KEY = "0a0e2bf9fe54e6e65320d51734e258a4";
 const BASE_URL    = "https://api.themoviedb.org/3";
 const IMAGE_URL   = "https://image.tmdb.org/t/p/original";
@@ -34,22 +32,23 @@ const CATEGORY_CONFIG = {
     mystery: { label: "Mystery", subtitle: "Every clue matters. Trust no one.",             url: () => `${BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_genres=${GENRES.mystery}&sort_by=popularity.desc` },
 };
 
+const BLOCKED_ROW_TITLES = {
+    "row-anime": ["overflow"], //this is a no no square for me I dont wanna fail this project
+};
+
 // Watch History Expansion State
 let historyExpanded = false;
 
-// ========================================================================== // STATE
-// ==========================================================================
+// STATE
 let heroInterval     = null;
 let currentSlide     = 0;
 let topMovies        = [];
-let currentPage      = "action"; // tracks active SPA page
+let currentPage      = "home"; // tracks active SPA page
 let currentModalId   = null;     // id of the currently open modal item
 let currentModalType = null;     // "movie" or "tv"
 let currentModalDetails = null;  // hydrated TMDB details for watch history
 
-// ==========================================================================
-// BOOT
-// ==========================================================================
+// VALIDATION FOR API KEY
 document.addEventListener("DOMContentLoaded", async () => {
     initNavSearch();
     applyPreferences();
@@ -67,11 +66,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         setupNavSPA();
         const bootParams = new URLSearchParams(window.location.search);
         const requestedSearch = bootParams.get("search");
-        const requestedPage = bootParams.get("page") || "action";
+        const requestedPage = bootParams.get("page") || "home";
         if (requestedSearch) {
             runSearch(requestedSearch);
         } else {
-            showPage(CATEGORY_CONFIG[requestedPage] ? requestedPage : "action"); // default landing page = Action (home)
+            const page = requestedPage === "home" || CATEGORY_CONFIG[requestedPage] ? requestedPage : "home";
+            showPage(page);
         }
 
         const modalClose = document.getElementById("modal-close");
@@ -95,6 +95,18 @@ document.addEventListener("DOMContentLoaded", async () => {
             });
         }
 
+        const heroWatchBtn = document.querySelector(".hero-btn-primary");
+        if (heroWatchBtn) {
+            heroWatchBtn.addEventListener("click", () => {
+                const item = topMovies[currentSlide];
+                if (!item) return;
+                const mediaType = item.media_type || (item.title ? "movie" : "tv");
+                const id = item.id;
+                if (!id) return;
+                window.location.href = `videoplayer.html?id=${id}&type=${mediaType}`;
+            });
+        }
+
         const btnPlan = document.getElementById("modal-plan-btn");
         if (btnPlan) {
             btnPlan.addEventListener("click", () => {
@@ -114,25 +126,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.addEventListener("scroll", onScroll);
 });
 
-// ==========================================================================
 // SPA NAVIGATION
-// ==========================================================================
 function setupNavSPA() {
     const items = document.querySelectorAll("#nav-categories .category-item");
     items.forEach(item => {
         const page = item.dataset.page;
         const link = item.querySelector("a");
-        if (link) link.href = `index.html?page=${encodeURIComponent(page)}`;
+        if (link) link.href = page === "home" ? "index.html" : `index.html?page=${encodeURIComponent(page)}`;
         link?.addEventListener("click", (e) => {
             e.preventDefault();
             if (page === currentPage && !document.getElementById("page-category")?.classList.contains("search-mode")) return;
             setActiveNavItem(item);
             showPage(page);
-            history.replaceState(null, "", page === "action" ? "index.html" : `index.html?page=${encodeURIComponent(page)}`);
+            history.replaceState(null, "", page === "home" ? "index.html" : `index.html?page=${encodeURIComponent(page)}`);
         });
     });
 
-    const initialPage = new URLSearchParams(window.location.search).get("page") || "action";
+    const initialPage = new URLSearchParams(window.location.search).get("page") || "home";
     const initialItem = Array.from(items).find(item => item.dataset.page === initialPage) || items[0];
     if (initialItem) setActiveNavItem(initialItem);
 }
@@ -156,8 +166,7 @@ function showPage(page) {
     const homeEl     = document.getElementById("page-home");
     const categoryEl = document.getElementById("page-category");
 
-    if (page === "action") {
-        // Action = the rich home page with hero + rows
+    if (page === "home") {
         homeEl.classList.remove("page-hidden");
         categoryEl.classList.add("page-hidden");
         loadHomePage();
@@ -170,13 +179,11 @@ function showPage(page) {
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-// ==========================================================================
 // HOME PAGE (Action)
-// ==========================================================================
 let homeLoaded = false;
 
 function loadHomePage() {
-    if (homeLoaded) return; // already loaded, don't re-fetch
+    if (homeLoaded) return;
     homeLoaded = true;
 
     renderContinueWatching();
@@ -195,9 +202,7 @@ function loadHomePage() {
     fetchRow(`${BASE_URL}/movie/upcoming?api_key=${TMDB_API_KEY}`, "row-upcoming", false, true);
 }
 
-// ==========================================================================
 // CATEGORY PAGE
-// ==========================================================================
 const categoryCache = {};
 
 async function loadCategoryPage(page) {
@@ -218,7 +223,7 @@ async function loadCategoryPage(page) {
         return;
     }
 
-    // Skeleton placeholders
+    // Skeleton placeholders for better perceived performance
     grid.innerHTML = "";
     for (let i = 0; i < 18; i++) {
         const sk = document.createElement("div");
@@ -261,9 +266,7 @@ async function loadCategoryPage(page) {
     }
 }
 
-// ==========================================================================
 // HERO SHOWCASE
-// ==========================================================================
 async function fetchHeroShowcase() {
     try {
         const res  = await fetch(`${BASE_URL}/trending/all/week?api_key=${TMDB_API_KEY}`);
@@ -367,9 +370,7 @@ function updateIndicators(total, active) {
     }
 }
 
-// ==========================================================================
 // ROW FETCHING (Home sliders)
-// ==========================================================================
 function initSkeletons(rowId, count) {
     const el = document.getElementById(rowId);
     if (!el) return;
@@ -392,6 +393,7 @@ async function fetchRow(url, rowId, isTop10 = false, isUpcoming = false) {
         el.innerHTML = "";
         data.results.forEach((item, index) => {
             if (!item.poster_path) return;
+            if (isBlockedRowItem(rowId, item)) return;
             const type = item.media_type || (rowId === "row-anime" || rowId === "row-kdrama" ? "tv" : "movie");
             const card = document.createElement("div");
             card.className = `movie-card ${isUpcoming ? "upcoming" : ""}`;
@@ -420,9 +422,14 @@ async function fetchRow(url, rowId, isTop10 = false, isUpcoming = false) {
     }
 }
 
-// ==========================================================================
+function isBlockedRowItem(rowId, item) {
+    const blockedTitles = BLOCKED_ROW_TITLES[rowId];
+    if (!blockedTitles) return false;
+    const title = (item.title || item.name || item.original_name || "").trim().toLowerCase();
+    return blockedTitles.includes(title);
+}
+
 // DRAG SCROLL
-// ==========================================================================
 function enableDragScroll(slider) {
     let isDown = false, startX, scrollLeft, hasDragged = false;
 
@@ -458,9 +465,7 @@ function enableDragScroll(slider) {
 // Lightweight hover enabler for category grid cards (no drag needed)
 function enableCardHover(card) { /* CSS handles it */ }
 
-// ==========================================================================
 // MODAL
-// ==========================================================================
 async function openDetailModal(id, type) {
     const modal   = document.getElementById("detail-modal");
     const wrapper = document.getElementById("modal-card-wrapper");
@@ -525,17 +530,12 @@ function closeModal() {
     document.body.style.overflow = "auto";
 }
 
-// -- FIRST_PLAYER_LOGIC_START --
-// ==========================================================================
 // SCROLL — navbar blur
-// ==========================================================================
 function onScroll() {
     document.getElementById("main-nav").classList.toggle("scrolled", window.scrollY > 10);
 }
 
-// ==========================================================================
 // VIDEOPLAYER PAGE LOGIC
-// ==========================================================================
 async function initPlayerPage() {
     const playerLayout = document.getElementById('player-layout');
     if (!playerLayout) return;
@@ -1394,7 +1394,7 @@ function goToPlayer(id, type) {
     location.href = `videoplayer.html?id=${id}&type=${type}`;
 }
 
-// ── Pill Control Switching Action Triggers ──
+//Pill Control Switching Action Triggers
 function setupTabs() {
     document.addEventListener("click", (e) => {
         const btn = e.target.closest(".capsule-tab-btn");
@@ -1411,7 +1411,7 @@ function setupTabs() {
     });
 }
 
-// ── Sticky Header Toggles ──
+// Sticky Header Toggles
 function setupScrollNav() {
     window.addEventListener("scroll", () => {
         document.getElementById("main-nav")?.classList.toggle("scrolled", window.scrollY > 10);
@@ -1419,7 +1419,7 @@ function setupScrollNav() {
 }
 
 
-// ── Drag to Scroll Implementation for Cast Row ──
+//Drag to Scroll Implementation for Cast Row
 document.addEventListener("DOMContentLoaded", () => {
     const slider = document.getElementById("ov-cast");
     if (!slider) return;
@@ -1451,7 +1451,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
- // ── Profile Dropdown Logic ──
+ //Profile Dropdown Logic
     (function () {
         const signinBtn      = document.getElementById('nav-signin-btn');
         const profileWrapper = document.getElementById('nav-profile-wrapper');
@@ -1499,7 +1499,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
 
-        // ── Menu item → UserProfile navigation ──
+        // Menu item → UserProfile navigation
         // Case A: Profile Settings  → UserProfile.html (top / profile section)
         const goProfile = document.querySelector('.pd-menu-list .pd-menu-item:nth-child(1)');
         if (goProfile) goProfile.addEventListener('click', () => {
@@ -1533,9 +1533,7 @@ document.addEventListener("DOMContentLoaded", () => {
         initProfile();
     })();
 
-// ==========================================================================
 // PREFERENCES AND WATCH HISTORY
-// ==========================================================================
 const FONT_OPTIONS = {
     "font-inter": "'Inter', sans-serif",
     "font-mono": "'JetBrains Mono', monospace",
@@ -1553,7 +1551,9 @@ const WATCH_COMPLETED_KEY = "notflix_watch_completed";
 
 // Local video paths used by the player when a TMDB title has a matching local file.
 const VIDEO_SOURCES = {
-    movie: {},
+    movie: {
+        
+    },
     episode: {
         "tv:85937:s3:e10": "videos/demonSlayerS3E10.mp4",
         "tv:95479:s1:e1": "videos/JUJUTSU KAISEN (2020) S1E1.mp4",
@@ -1569,7 +1569,7 @@ let currentPlayerMedia = null;
 // Translation dictionary for navigation, profile labels, home rows, and player tabs.
 const translations = {
     en: {
-        nav: ["Action", "Comedy", "Drama", "Sci-Fi", "Horror", "Mystery"],
+        nav: ["Home", "Action", "Comedy", "Drama", "Sci-Fi", "Horror", "Mystery"],
         signIn: "Sign In",
         account: "MY ACCOUNT",
         menu: ["Profile Settings", "Watch History", "Streaming Statistics", "Preference", "Sign Out"],
@@ -1601,7 +1601,7 @@ const translations = {
         player: ["Overview", "Episodes", "More Like This", "Details", "Cast Members", "English [Original]"],
     },
     ja: {
-        nav: ["アクション", "コメディ", "ドラマ", "SF", "ホラー", "ミステリー"],
+        nav: ["ホーム", "アクション", "コメディ", "ドラマ", "SF", "ホラー", "ミステリー"],
         signIn: "サインイン",
         account: "マイアカウント",
         menu: ["プロフィール設定", "視聴履歴", "配信統計", "設定", "サインアウト"],
@@ -1633,7 +1633,7 @@ const translations = {
         player: ["概要", "エピソード", "関連作品", "詳細", "出演者", "日本語"],
     },
     ko: {
-        nav: ["액션", "코미디", "드라마", "SF", "호러", "미스터리"],
+        nav: ["홈", "액션", "코미디", "드라마", "SF", "호러", "미스터리"],
         signIn: "로그인",
         account: "내 계정",
         menu: ["프로필 설정", "시청 기록", "스트리밍 통계", "설정", "로그아웃"],
@@ -1665,7 +1665,7 @@ const translations = {
         player: ["개요", "에피소드", "비슷한 콘텐츠", "상세 정보", "출연진", "한국어"],
     },
     zh: {
-        nav: ["动作", "喜剧", "剧情", "科幻", "恐怖", "悬疑"],
+        nav: ["首页", "动作", "喜剧", "剧情", "科幻", "恐怖", "悬疑"],
         signIn: "登录",
         account: "我的账户",
         menu: ["个人资料设置", "观看历史", "流媒体统计", "偏好设置", "退出登录"],
@@ -2027,8 +2027,6 @@ function renderWatchHistory() {
         });
     });
     updateHistoryStats(history, dictionary);
-    
-    // Setup drag and see all functionality
     setupHistorySeeAllButton();
     setupHistorySliderDrag();
 }
@@ -2155,14 +2153,13 @@ function escapeAttribute(value) {
     return escapeHtml(value).replace(/`/g, "&#096;");
 }
 
-// ==========================================================================
 // NAV SEARCH
-// ==========================================================================
 function updateCategoryNavHrefs() {
     document.querySelectorAll("#nav-categories .category-item").forEach(item => {
         const page = item.dataset.page;
         const link = item.querySelector("a");
-        if (page && link) link.href = page === "action" ? "index.html?page=action" : `index.html?page=${encodeURIComponent(page)}`;
+        if (!page || !link) return;
+        link.href = page === "home" ? "index.html" : `index.html?page=${encodeURIComponent(page)}`;
     });
 }
 
