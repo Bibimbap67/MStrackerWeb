@@ -176,7 +176,13 @@ body.videoplayer-body {
     padding: 0.75rem 1.5rem;
     box-shadow: 0 4px 24px rgba(255, 255, 255, 0.15);
 }
-.hero-btn-primary:hover { background-color: rgba(255, 255, 255, 0.9); }
+.hero-btn-primary:hover {
+    background-color: #e50914;
+    color: #fff;
+}
+.hero-btn-primary:hover .lucide-icon {
+    color: #fff;
+}
 @media (min-width: 640px) { .hero-btn-primary { padding: 0.875rem 1.75rem; } }
 
 .hero-btn-secondary {
@@ -411,8 +417,13 @@ body.videoplayer-body {
                 transform 0.28s cubic-bezier(0.34,1.56,0.64,1);
 }
 
-.continue-play-btn svg {
+.continue-play-btn svg,
+.continue-play-btn i {
     filter: drop-shadow(0 2px 8px rgba(0,0,0,0.7));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
 }
 
 .planning-watch-icon {
@@ -423,6 +434,8 @@ body.videoplayer-body {
     display: flex;
     align-items: center;
     justify-content: center;
+    text-align: center;
+    line-height: 1;
     color: #fff;
     font-size: 18px;
     filter: drop-shadow(0 2px 8px rgba(0,0,0,0.7));
@@ -810,12 +823,12 @@ body.videoplayer-body {
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0.7;
-    fill: #fff;
-    transition: opacity 0.2s ease;
+    color: rgba(255, 255, 255, 0.45);
+    opacity: 1;
+    transition: color 0.2s ease;
 }
-.social-icon-link:hover { opacity: 1; fill: #5865F2; }
-.discord-icon { width: 22px; height: 22px; }
+.social-icon-link:hover { color: #fff; }
+.github-icon { width: 34px; height: 34px; }
 
 .nav-btn-signin {
     display: flex;
@@ -1116,8 +1129,8 @@ body.videoplayer-body {
             z-index: 0;
             object-fit: cover;
             border-radius: inherit;
-            filter: blur(65px) opacity(80%);
-            transform: scale(1.35);
+            filter: blur(65px) opacity(90%);
+            transform: scale(1.25);
             pointer-events: none;
         }
         .ambient-glow-layer.ambient-disabled {
@@ -1471,8 +1484,6 @@ body.videoplayer-body {
             border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 20px;
             padding: 24px;
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
             display: flex;
             flex-direction: column;
             gap: 20px;
@@ -1719,13 +1730,8 @@ body.videoplayer-body {
             .page-content-tight { max-width: 100%; padding: 0 12px; }
         }
 
-/* ==========================================================================
-   PROFILE PAGE -- moved from UserProfile.html
-   ========================================================================== */
-/* =============================================
-           PROFILE PAGE — scoped styles only
-           (Nav styles all come from style.css)
-        ============================================= */
+
+        /* (Nav styles all come from style.css) */
 
         /* Theme variables */
         :root {
@@ -2042,7 +2048,8 @@ body.videoplayer-body {
         :root[data-theme="light"] .category-item a:hover,
         :root[data-theme="light"] .category-item.active a { color: #000; }
         :root[data-theme="light"] .nav-active-indicator { background-color: #000; }
-        :root[data-theme="light"] .discord-icon { fill: #000; }
+        :root[data-theme="light"] .social-icon-link { color: rgba(255,255,255,0.45); }
+        :root[data-theme="light"] .social-icon-link:hover { color: #fff; }
         :root[data-theme="light"] .nav-btn-signin { color: #000; border-color: rgba(0,0,0,0.2); background-color: rgba(0,0,0,0.04); }
         :root[data-theme="light"] .nav-btn-signin:hover { background-color: #e50914; color: #fff; border-color: #e50914; }
         :root[data-theme="light"] .nav-profile-btn { border-color: rgba(0,0,0,0.25); background: rgba(0,0,0,0.06); }
@@ -2149,9 +2156,7 @@ body.videoplayer-body {
     color: #fff;
 }
 
-/* ==========================================================================
-   SIGNUP PAGE
-   ========================================================================== */
+   /* SIGNUP PAGE */
 body.signup-body {
     width: 100%;
     height: 100%;
@@ -2562,4 +2567,3 @@ body.signup-body {
 
 .signup-body .signup-spacer { margin-bottom: 16px; }
 .signup-body .hidden { display: none !important; }
-
